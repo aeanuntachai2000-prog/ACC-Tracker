@@ -1,0 +1,149 @@
+<!doctype html>
+<html lang="th">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#151719">
+  <meta name="description" content="Accounting Tracker - Multi-company accounting work management">
+  <title>Accounting Tracker</title>
+  <link rel="manifest" href="./manifest.webmanifest">
+  <link rel="icon" href="./icons/icon-192.png">
+  <link rel="apple-touch-icon" href="./icons/icon-192.png">
+  <link rel="stylesheet" href="./styles.css">
+</head>
+<body>
+  <div class="app-shell">
+    <aside class="sidebar" id="sidebar" aria-label="เมนูหลัก">
+      <div class="brand">
+        <div class="brand-mark">AT</div>
+        <div class="brand-copy">
+          <strong>ACCOUNTING</strong>
+          <span>TRACKER</span>
+        </div>
+        <button class="icon-btn close-sidebar" id="closeSidebar" aria-label="ปิดเมนู">×</button>
+      </div>
+
+      <div class="workspace-label">WORKSPACE</div>
+      <nav class="nav-list" id="mainNav">
+        <button class="nav-item active" data-page="dashboard"><span class="nav-icon">▦</span><span>Dashboard</span></button>
+        <button class="nav-item" data-page="companies"><span class="nav-icon">▤</span><span>Companies</span><span class="nav-count">20</span></button>
+        <button class="nav-item" data-page="tasks"><span class="nav-icon">☷</span><span>Tasks</span><span class="nav-count">35</span></button>
+        <button class="nav-item" data-page="calendar"><span class="nav-icon">▦</span><span>Calendar</span></button>
+        <button class="nav-item" data-page="reports"><span class="nav-icon">▥</span><span>Reports</span></button>
+        <button class="nav-item" data-page="documents"><span class="nav-icon">▧</span><span>Documents</span></button>
+        <button class="nav-item" data-page="notifications"><span class="nav-icon">♧</span><span>Notifications</span><span class="notification-dot"></span></button>
+        <button class="nav-item" data-page="settings"><span class="nav-icon">⚙</span><span>Settings</span></button>
+      </nav>
+
+      <div class="sidebar-bottom">
+        <div class="sync-card">
+          <div class="sync-icon">↻</div>
+          <div><strong>Local preview</strong><span>Database not connected</span></div>
+          <i></i>
+        </div>
+        <div class="profile">
+          <div class="avatar">U</div>
+          <div class="profile-text"><strong>Workspace User</strong><span>Administrator</span></div>
+          <span class="more">···</span>
+        </div>
+      </div>
+    </aside>
+
+    <div class="sidebar-scrim" id="scrim"></div>
+
+    <main class="main-area">
+      <header class="topbar">
+        <div class="topbar-left">
+          <button class="icon-btn menu-toggle" id="menuToggle" aria-label="เปิดเมนู">☰</button>
+          <div class="breadcrumb"><span>Workspace</span><b>/</b><strong id="pageCrumb">Dashboard</strong></div>
+        </div>
+        <div class="topbar-actions">
+          <button class="icon-btn top-action" id="installButton" hidden title="ติดตั้งแอป">↓</button>
+          <button class="icon-btn top-action notification-action" data-page="notifications" aria-label="การแจ้งเตือน">♧<i></i></button>
+          <div class="top-avatar">U</div>
+        </div>
+      </header>
+
+      <section class="page-content" id="pageContent">
+        <div class="page-heading">
+          <div>
+            <div class="eyebrow">MONDAY, 09 NOVEMBER 2026</div>
+            <h1>Dashboard</h1>
+            <p>ภาพรวมการจัดการงานบัญชีของทุกบริษัท</p>
+          </div>
+          <button class="date-chip" id="todayButton">▦ <span>วันนี้</span></button>
+        </div>
+
+        <div class="welcome-panel">
+          <div class="welcome-copy">
+            <span class="gold-kicker">WORKSPACE OVERVIEW</span>
+            <h2>จัดการทุกงานบัญชี<br><em>ในที่เดียว</em></h2>
+            <p>ติดตามสถานะงาน บริษัท และกำหนดส่งได้จากหน้าจอเดียว</p>
+          </div>
+          <div class="welcome-art" aria-hidden="true">
+            <div class="orbit orbit-one"></div><div class="orbit orbit-two"></div>
+            <div class="art-core"><span>AT</span></div>
+            <div class="art-spark">✦</div>
+          </div>
+        </div>
+
+        <div class="section-heading"><div><span class="section-kicker">OVERVIEW</span><h2>สรุปภาพรวม</h2></div><span class="muted small">ข้อมูลตัวอย่าง</span></div>
+        <div class="stats-grid">
+          <article class="stat-card">
+            <div class="stat-top"><span>บริษัททั้งหมด</span><span class="stat-icon">▤</span></div>
+            <div class="stat-value">20</div><div class="stat-foot"><span class="gold-text">20 บริษัท</span> ใน Workspace</div>
+          </article>
+          <article class="stat-card">
+            <div class="stat-top"><span>งานทั้งหมด</span><span class="stat-icon">☷</span></div>
+            <div class="stat-value">128</div><div class="stat-foot"><span class="gold-text">เดือนนี้</span> ทุกบริษัท</div>
+          </article>
+          <article class="stat-card">
+            <div class="stat-top"><span>เสร็จแล้ว</span><span class="stat-icon">✓</span></div>
+            <div class="stat-value">86</div><div class="stat-foot"><span class="green-text">67.2%</span> ของงานทั้งหมด</div>
+          </article>
+          <article class="stat-card">
+            <div class="stat-top"><span>งานค้าง</span><span class="stat-icon">◷</span></div>
+            <div class="stat-value">42</div><div class="stat-foot"><span class="gold-text">12 งาน</span> ใกล้ครบกำหนด</div>
+          </article>
+        </div>
+
+        <div class="dashboard-columns">
+          <section class="panel task-panel">
+            <div class="panel-heading"><div><span class="section-kicker">PRIORITY</span><h2>งานที่ต้องติดตาม</h2></div><button class="text-button" data-page="tasks">ดูทั้งหมด <span>→</span></button></div>
+            <div class="task-list">
+              <div class="task-row"><div class="task-symbol tax">ภ</div><div class="task-info"><strong>ยื่นแบบ ภ.พ.30</strong><span>บริษัท เอ • รอบ ต.ค. 2569</span></div><span class="status-pill due">ใกล้ครบกำหนด</span></div>
+              <div class="task-row"><div class="task-symbol doc">▤</div><div class="task-info"><strong>จัดทำ ภ.ง.ด.53</strong><span>บริษัท บี • รอบ ต.ค. 2569</span></div><span class="status-pill progress">กำลังทำ</span></div>
+              <div class="task-row"><div class="task-symbol wait">◷</div><div class="task-info"><strong>รวบรวมเอกสารซื้อ</strong><span>บริษัท ซี • รอบ ต.ค. 2569</span></div><span class="status-pill waiting">รอเอกสาร</span></div>
+              <div class="task-row"><div class="task-symbol late">!</div><div class="task-info"><strong>ตรวจสอบกระทบยอด</strong><span>บริษัท ดี • รอบ ต.ค. 2569</span></div><span class="status-pill overdue">เกินกำหนด</span></div>
+            </div>
+          </section>
+
+          <section class="panel progress-panel">
+            <div class="panel-heading"><div><span class="section-kicker">MONTHLY PROGRESS</span><h2>ความคืบหน้า</h2></div><span class="muted small">พ.ย. 2569</span></div>
+            <div class="progress-summary"><strong>67.2%</strong><span>ดำเนินการแล้ว</span></div>
+            <div class="progress-track"><div class="progress-fill"></div></div>
+            <div class="progress-legend"><span><i class="legend-dot done"></i>เสร็จแล้ว <b>86</b></span><span><i class="legend-dot pending"></i>คงเหลือ <b>42</b></span></div>
+            <div class="mini-divider"></div>
+            <div class="deadline-line"><div><span class="section-kicker">UPCOMING</span><strong>กำหนดส่งถัดไป</strong></div><div class="deadline-date"><b>15</b><span>NOV</span></div></div>
+            <p class="deadline-note">มีงาน 8 รายการที่ต้องส่งภายใน 7 วัน</p>
+          </section>
+        </div>
+        <div class="footer-note">ACCOUNTING TRACKER <span>•</span> VERSION 0.1 PREVIEW</div>
+      </section>
+    </main>
+  </div>
+
+  <nav class="mobile-nav" aria-label="เมนูด้านล่าง">
+    <button class="mobile-nav-item active" data-page="dashboard"><span>▦</span><small>หน้าหลัก</small></button>
+    <button class="mobile-nav-item" data-page="companies"><span>▤</span><small>บริษัท</small></button>
+    <button class="mobile-nav-item" data-page="tasks"><span>☷</span><small>งาน</small></button>
+    <button class="mobile-nav-item" data-page="calendar"><span>▦</span><small>ปฏิทิน</small></button>
+    <button class="mobile-nav-item" id="mobileMore"><span>···</span><small>เพิ่มเติม</small></button>
+  </nav>
+
+  <div class="toast" id="toast" role="status"></div>
+  <template id="dashboardTemplate"></template>
+  <script>document.getElementById("dashboardTemplate").innerHTML = document.getElementById("pageContent").innerHTML;</script>
+  <script src="./app.js"></script>
+</body>
+</html>
