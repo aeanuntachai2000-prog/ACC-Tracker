@@ -144,11 +144,22 @@ function fadeOutLoadingScreen() {
   loading.classList.add("fade-out");
 
   return new Promise(resolve => {
+    let finished = false;
+
     const onEnd = () => {
+      if (finished) return;
+      finished = true;
+
+      clearTimeout(fallbackTimer);
       loading.removeEventListener("transitionend", onEnd);
       loading.remove();
       resolve();
     };
+
+    // Fallback: on some phones transitionend never fires
+    // (reduced motion / low power mode), which left the loading
+    // screen stuck and the app locked.
+    const fallbackTimer = setTimeout(onEnd, 800);
 
     loading.addEventListener("transitionend", onEnd, { once: true });
   });
