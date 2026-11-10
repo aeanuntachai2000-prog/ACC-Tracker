@@ -237,6 +237,15 @@
           <button class="date-chip" id="todayButton">
             ▦ <span>วันนี้</span>
           </button>
+
+          <div class="month-control">
+            <button class="icon-btn" id="prevMonth" aria-label="เดือนก่อนหน้า">‹</button>
+            <div class="month-info">
+              <div class="month-label processing" id="processingMonthDisplay">พฤศจิกายน 2569</div>
+              <div class="month-label tax" id="taxMonthDisplay">เดือนภาษี: ตุลาคม 2569</div>
+            </div>
+            <button class="icon-btn" id="nextMonth" aria-label="เดือนถัดไป">›</button>
+          </div>
         </div>
 
         <!-- WELCOME -->
@@ -275,7 +284,7 @@
             <div class="stat-foot">บริษัทใน Workspace</div>
           </article>
 
-          <article class="stat-card">
+          <article class="stat-card" data-filter="all">
             <div class="stat-top">
               <span>งานทั้งหมด</span>
               <span class="stat-icon">☷</span>
@@ -284,7 +293,7 @@
             <div class="stat-foot">รายการงานในระบบ</div>
           </article>
 
-          <article class="stat-card">
+          <article class="stat-card" data-filter="completed">
             <div class="stat-top">
               <span>เสร็จแล้ว</span>
               <span class="stat-icon">✓</span>
@@ -293,7 +302,7 @@
             <div class="stat-foot"><span class="green-text" id="completedPercent">--</span> ของงานทั้งหมด</div>
           </article>
 
-          <article class="stat-card">
+          <article class="stat-card" data-click="pending">
             <div class="stat-top">
               <span>งานที่ยังไม่เสร็จ</span>
               <span class="stat-icon">◷</span>
@@ -384,6 +393,8 @@
 
           </section>
 
+          <div id="dashboardCompanyList"></div>
+
         </div>
 
         <div class="footer-note">
@@ -437,6 +448,9 @@
 
   <!-- SUPABASE SDK -->
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
+  <!-- SHEETJS (Excel import) -->
+  <script src="https://cdn.jsdelivr.net/npm/xlsx/dist/xlsx.full.min.js"></script>
 
   <!-- APPLICATION -->
   <script src="./app.js"></script>

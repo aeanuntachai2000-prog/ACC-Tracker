@@ -45,6 +45,14 @@ let tasks = [];
 let currentUser = null;
 let isLoading = false;
 
+let currentMonthIndex = new Date().getMonth();
+let currentBuddhistYear = new Date().getFullYear() + 543;
+
+const THAI_MONTHS = [
+  "มกราคม", "กุมภาพันธ์", "มีนาคม", "เมษายน", "พฤษภาคม", "มิถุนายน",
+  "กรกฎาคม", "สิงหาคม", "กันยายน", "ตุลาคม", "พฤศจิกายน", "ธันวาคม"
+];
+
 const TASK_STATUSES = [
   "ยังไม่เริ่ม",
   "กำลังดำเนินการ",
@@ -506,73 +514,775 @@ function updateNavigationCounts() {
 
 /* 10. DASHBOARD */
 
+function getTaxMonth() {
+  let taxMonthIndex = currentMonthIndex - 1;
+  let taxYear = currentBuddhistYear;
+
+  if (taxMonthIndex < 0) {
+    taxMonthIndex = 11;
+    taxYear -= 1;
+  }
+
+  return { year: taxYear, month: taxMonthIndex + 1 };
+}
+
+function getDueDateText(taskType, year, month) {
+  const tt = String(taskType || "");
+
+  if (tt.includes("ภ.พ.30") || tt === "VAT") {
+    return "กำหนดส่ง: 23 " + THAI_MONTHS[month - 1] + " " + year;
+  }
+
+  if (tt.includes("ภ.ง.ด.")) {
+    if (tt === "ภ.ง.ด.50" || tt === "ภ.ง.ด.51") {
+      return "กำหนดส่ง: ระบุตามกฎหมาย";
+    }
+    return "กำหนดส่ง: 15 " + THAI_MONTHS[month - 1] + " " + year;
+  }
+
+  if (tt === "ภ.พ.36") {
+    return "กำหนดส่ง: ระบุตามกฎหมาย";
+  }
+
+  return "-";
+}
+
 function renderDashboardData() {
+  const tax = getTaxMonth();
+  const taxYear = tax.year;
+  const taxMonth = tax.month;
+
+  const filteredTasks = tasks.filter(t =>
+    String(t.buddhist_year) === String(taxYear) &&
+    String(t.month) === String(taxMonth)
+  );
+
   const totalCompanies = companies.length;
-  const totalTasks = tasks.length;
-
-  const completed = tasks.filter(
-    t => t.status === "เสร็จแล้ว"
+  const totalTasks = filteredTasks.length;
+  const completed = filteredTasks.filter(t => t.status === "เสร็จแล้ว").length;
+  const pending = filteredTasks.filter(t =>
+    t.status === "ยังไม่เริ่ม" || t.status === "กำลังดำเนินการ"
   ).length;
-
-  const pending = tasks.filter(t =>
-    t.status === "ยังไม่เริ่ม" ||
-    t.status === "กำลังดำเนินการ"
-  ).length;
-
-  const percent = totalTasks
-    ? (completed / totalTasks * 100)
-    : 0;
+  const percent = totalTasks ? (completed / totalTasks * 100) : 0;
 
   setText("statCompanies", formatNumber(totalCompanies));
   setText("statTasks", formatNumber(totalTasks));
   setText("statCompleted", formatNumber(completed));
   setText("statPending", formatNumber(pending));
-
   setText("completedPercent", percent.toFixed(1) + "%");
   setText("progressPercent", percent.toFixed(1) + "%");
-
   setText("progressDone", formatNumber(completed));
   setText("progressPending", formatNumber(totalTasks - completed));
 
   const progressFill = document.getElementById("progressFill");
-
   if (progressFill) {
     progressFill.style.width = percent + "%";
   }
 
+  const taskGroups = {
+    "ภาษีหัก ณ ที่จ่าย": [],
+    "VAT": [],
+    "งานบัญชีประจำเดือน": []
+  };
+
+  filteredTasks.forEach(t => {
+    if (Object.prototype.hasOwnProperty.call(taskGroups, t.task_type)) {
+      taskGroups[t.task_type].push(t);
+    }
+  });
+
   const list = document.getElementById("dashboardTaskList");
-
   if (list) {
-    const statusCounts = TASK_STATUSES.map(status => ({
-      status,
-      count: tasks.filter(t => t.status === status).length
-    }));
+    let html = "";
 
-    list.innerHTML = statusCounts.map(item => `
-      <div class="task-row">
-        <div class="task-symbol doc">☷</div>
-        <div class="task-info">
-          <strong>${escapeHTML(item.status)}</strong>
-          <span>รายการงานในระบบ</span>
+    Object.entries(taskGroups).forEach(([taskType, typeTasks]) => {
+      html += `
+        <div class="task-group">
+          <div class="task-group-header">
+            <span class="task-group-type">${escapeHTML(taskType)}</span>
+            <span class="task-group-count">${typeTasks.length}</span>
+          </div>
+          <div class="task-group-items">
+            ${typeTasks.map(task => `
+              <div class="task-row">
+                <div class="task-symbol doc">☷</div>
+                <div class="task-info">
+                  <strong>${escapeHTML(getTaskCompanyName(task))}</strong>
+                  <div class="muted small">${escapeHTML(task.company_code || "")}</div>
+                </div>
+                <div class="task-meta">
+                  <span class="status-pill">${escapeHTML(task.status)}</span>
+                  <span class="due-date">${getDueDateText(taskType, taxYear, taxMonth)}</span>
+                </div>
+              </div>
+            `).join("")}
+          </div>
         </div>
-        <span class="status-pill">${formatNumber(item.count)}</span>
-      </div>
-    `).join("");
+      `;
+    });
+
+    if (totalTasks === 0) {
+      html = `
+        <div class="task-row">
+          <div class="task-info">
+            <strong>ไม่พบงานในเดือนนี้</strong>
+            <span>เดือนภาษี ${THAI_MONTHS[tax.month - 1]} ${taxYear}</span>
+          </div>
+        </div>
+      `;
+    }
+
+    list.innerHTML = html;
   }
 
-  setText("lastUpdated", "โหลดข้อมูลจาก Supabase เรียบร้อยแล้ว");
+  // รายงานบริษัทที่มีงานในเดือนภาษีนี้
+  const companyMap = {};
+  filteredTasks.forEach(t => {
+    const cid = String(t.company_id);
+    if (!companyMap[cid]) {
+      companyMap[cid] = {
+        name: getTaskCompanyName(t),
+        code: t.company_code || "",
+        total: 0,
+        completed: 0,
+        pending: 0,
+        tasks: []
+      };
+    }
+    companyMap[cid].total++;
+    if (t.status === "เสร็จแล้ว") companyMap[cid].completed++;
+    if (t.status === "ยังไม่เริ่ม" || t.status === "กำลังดำเนินการ") companyMap[cid].pending++;
+    companyMap[cid].tasks.push(t);
+  });
 
-  setConnectionStatus(
-    "Connected",
-    "Supabase database",
-    true
+  const companyList = document.getElementById("dashboardCompanyList");
+  if (companyList) {
+    const companiesSorted = Object.entries(companyMap)
+      .sort((a, b) => b[1].pending - a[1].pending);
+
+    let companyHtml = `
+      <div class="section-heading" style="margin-top:20px">
+        <div>
+          <span class="section-kicker">COMPANIES</span>
+          <h2>สรุปตามบริษัท</h2>
+        </div>
+      </div>
+      <div class="company-list">
+        ${companiesSorted.map(([cid, comp]) => {
+          const pct = comp.total ? (comp.completed / comp.total * 100) : 0;
+          return `
+            <div class="task-company-card" onclick="renderCompanyDashboard('${escapeHTML(cid)}')">
+              <div class="task-company-header">
+                <span class="task-company-name">${escapeHTML(comp.name)}</span>
+                <span class="task-company-code">${escapeHTML(comp.code)}</span>
+                <span class="task-company-progress">${pct.toFixed(0)}%</span>
+              </div>
+              <div class="task-company-stats">
+                <span>${comp.total} งาน</span>
+                <span class="green-text">เสร็จ ${comp.completed}</span>
+                <span class="red-text">ค้าง ${comp.pending}</span>
+              </div>
+            </div>
+          `;
+        }).join("")}
+      </div>
+    `;
+    companyList.innerHTML = companyHtml;
+  }
+
+  setText("lastUpdated", "เดือนภาษี: " + THAI_MONTHS[tax.month - 1] + " " + taxYear + " • โหลดจาก Supabase เรียบร้อยแล้ว");
+
+  setConnectionStatus("Connected", "Supabase database", true);
+}
+
+function renderPendingTasks() {
+  currentPage = "pending";
+
+  const tax = getTaxMonth();
+  const taxYear = tax.year;
+  const taxMonth = tax.month;
+
+  const allMonthTasks = tasks.filter(t =>
+    String(t.buddhist_year) === String(taxYear) &&
+    String(t.month) === String(taxMonth)
   );
+
+  const pendingTasks = allMonthTasks.filter(t =>
+    t.status === "ยังไม่เริ่ม" || t.status === "กำลังดำเนินการ"
+  );
+
+  function countByStatus(taskList) {
+    return {
+      total: taskList.length,
+      completed: taskList.filter(t => t.status === "เสร็จแล้ว").length,
+      inProgress: taskList.filter(t => t.status === "กำลังดำเนินการ").length,
+      notStarted: taskList.filter(t => t.status === "ยังไม่เริ่ม").length,
+      notRelevant: taskList.filter(t => t.status === "ไม่เกี่ยวข้อง").length
+    };
+  }
+
+  function progressPercent(taskList) {
+    const relevant = taskList.filter(t => t.status !== "ไม่เกี่ยวข้อง").length;
+    const completed = taskList.filter(t => t.status === "เสร็จแล้ว").length;
+    return relevant ? (completed / relevant * 100) : 0;
+  }
+
+  function categorizeTaskType(taskType) {
+    const tt = String(taskType || "");
+    if (tt.includes("ภ.พ.30") || tt.includes("VAT")) return "VAT";
+    if (tt.includes("ภ.ง.ด.")) return "ภาษีหัก ณ ที่จ่าย";
+    return "งานบัญชีประจำเดือน";
+  }
+
+  const categoryOrder = ["ภาษีหัก ณ ที่จ่าย", "VAT", "งานบัญชีประจำเดือน"];
+
+  const allTaskTypes = [...new Set(pendingTasks.map(t => t.task_type).filter(Boolean))];
+
+  const categories = {};
+  categoryOrder.forEach(cat => { categories[cat] = []; });
+  allTaskTypes.forEach(tt => {
+    const cat = categorizeTaskType(tt);
+    if (!categories[cat]) categories[cat] = [];
+    if (!categories[cat].includes(tt)) categories[cat].push(tt);
+  });
+
+  const overallStats = countByStatus(allMonthTasks);
+
+  pageContent.innerHTML = `
+    <div class="page-heading">
+      <div>
+        <div class="eyebrow">ACC TRACKER / WORKSPACE</div>
+        <h1>งานยังไม่เสร็จ</h1>
+        <p>เดือนภาษี ${THAI_MONTHS[tax.month - 1]} ${taxYear} • รายการงานที่ค้างดำเนินการ</p>
+      </div>
+      <button class="text-button" onclick="renderDashboard()">กลับสู่ Dashboard</button>
+    </div>
+
+    <div class="module-view">
+      <div class="progress-summary-card">
+        <div class="progress-stats">
+          <div class="stat-item">
+            <span class="stat-label">งานทั้งหมด</span>
+            <span class="stat-value">${overallStats.total}</span>
+          </div>
+          <div class="stat-item">
+            <span class="stat-label">เสร็จแล้ว</span>
+            <span class="stat-value green-text">${overallStats.completed}</span>
+          </div>
+          <div class="stat-item">
+            <span class="stat-label">กำลังดำเนินการ</span>
+            <span class="stat-value amber-text">${overallStats.inProgress}</span>
+          </div>
+          <div class="stat-item">
+            <span class="stat-label">ยังไม่เริ่ม</span>
+            <span class="stat-value red-text">${overallStats.notStarted}</span>
+          </div>
+          <div class="stat-item">
+            <span class="stat-label">งานคงเหลือ</span>
+            <span class="stat-value">${overallStats.inProgress + overallStats.notStarted}</span>
+          </div>
+        </div>
+        <div class="progress-overall">
+          <div class="progress-label">ความคืบหน้ารวม: <span id="pendingOverallPercent">${progressPercent(allMonthTasks).toFixed(1)}%</span></div>
+          <div class="progress-track">
+            <div class="progress-fill" id="pendingOverallFill" style="width:${progressPercent(allMonthTasks)}%"></div>
+          </div>
+        </div>
+      </div>
+
+      ${categoryOrder.map(category => {
+        const typeTaskTypes = categories[category] || [];
+        if (typeTaskTypes.length === 0) return "";
+
+        const categoryPending = pendingTasks.filter(t => categorizeTaskType(t.task_type) === category);
+
+        const companies = {};
+        categoryPending.forEach(t => {
+          const cid = String(t.company_id);
+          if (!companies[cid]) {
+            companies[cid] = { name: getTaskCompanyName(t), code: t.company_code || "", tasks: [] };
+          }
+          companies[cid].tasks.push(t);
+        });
+
+        return `
+          <div class="task-type-section">
+            <div class="task-type-header">
+              <span class="task-type-name">${escapeHTML(category)}</span>
+              <span class="task-type-stats">
+                ${typeTaskTypes.join(", ")} • ${categoryPending.length} รายการค้าง
+              </span>
+              <span class="task-type-progress">${progressPercent(categoryPending).toFixed(1)}%</span>
+            </div>
+            <div class="task-type-progress-bar">
+              <div class="progress-fill" style="width:${progressPercent(categoryPending)}%"></div>
+            </div>
+            <div class="task-companies">
+              ${Object.entries(companies).map(([cid, comp]) => {
+                const compTasks = comp.tasks.filter(t => categorizeTaskType(t.task_type) === category);
+                const compPending = compTasks.filter(t => t.status === "ยังไม่เริ่ม" || t.status === "กำลังดำเนินการ");
+                if (compPending.length === 0) return "";
+
+                return `
+                  <div class="task-company-card" onclick="filterPendingByCompany('${escapeHTML(cid)}')">
+                    <div class="task-company-header">
+                      <span class="task-company-name">${escapeHTML(comp.name)}</span>
+                      <span class="task-company-code">${escapeHTML(comp.code)}</span>
+                      <span class="task-company-progress">${compPending.length} รายการ</span>
+                    </div>
+                    <div class="task-company-stats">
+                      <span>${compTasks.length} งานในหมวดนี้</span>
+                      <span class="red-text">ค้าง ${compPending.length}</span>
+                    </div>
+                    <div class="task-company-items">
+                      ${compPending.map(task => `
+                        <div class="task-row">
+                          <div class="task-symbol doc">☷</div>
+                          <div class="task-info">
+                            <strong>${escapeHTML(task.task_type)}</strong>
+                            <div class="muted small">${escapeHTML(task.status)}</div>
+                          </div>
+                          <div class="task-meta">
+                            <select class="filter-chip task-status-select" data-task-id="${escapeHTML(task.task_id)}" style="max-width:170px">
+                              ${TASK_STATUSES.map(status => `
+                                <option value="${escapeHTML(status)}" ${task.status === status ? "selected" : ""}>
+                                  ${escapeHTML(status)}
+                                </option>
+                              `).join("")}
+                            </select>
+                            <span class="due-date">${getDueDateText(task.task_type, taxYear, taxMonth)}</span>
+                            ${task.notes ? `<span class="task-note">${escapeHTML(task.notes)}</span>` : ""}
+                          </div>
+                        </div>
+                      `).join("")}
+                    </div>
+                  </div>
+                `;
+              }).join("")}
+            </div>
+          </div>
+        `;
+      }).join("")}
+
+      ${pendingTasks.length === 0 ? `
+        <div class="module-empty">
+          <div class="empty-icon">✓</div>
+          <strong>ไม่มีงานค้างในรอบนี้</strong>
+          <p>งานทั้งหมดในเดือนภาษี ${THAI_MONTHS[tax.month - 1]} ${taxYear} เสร็จแล้วหรือไม่เกี่ยวข้อง</p>
+        </div>
+      ` : ""}
+    </div>
+
+    <div class="footer-note">
+      ACC TRACKER <span>•</span> VERSION 0.2
+    </div>
+  `;
+
+  pageContent.querySelectorAll(".task-status-select").forEach(select => {
+    select.addEventListener("change", async event => {
+      await updateTaskStatus(
+        event.target.dataset.taskId,
+        event.target.value,
+        event.target
+      );
+      renderPendingTasks();
+    });
+  });
+
+  location.hash = "pending";
+}
+
+function renderTasksByStatus(filterType) {
+  currentPage = "tasklist";
+
+  const tax = getTaxMonth();
+  const taxYear = tax.year;
+  const taxMonth = tax.month;
+
+  const allMonthTasks = tasks.filter(t =>
+    String(t.buddhist_year) === String(taxYear) &&
+    String(t.month) === String(taxMonth)
+  );
+
+  let filteredTasks = [];
+  let title = "";
+
+  if (filterType === "completed") {
+    filteredTasks = allMonthTasks.filter(t => t.status === "เสร็จแล้ว");
+    title = "งานเสร็จแล้ว";
+  } else if (filterType === "pending") {
+    filteredTasks = allMonthTasks.filter(t =>
+      t.status === "ยังไม่เริ่ม" || t.status === "กำลังดำเนินการ"
+    );
+    title = "งานยังไม่เสร็จ";
+  } else {
+    filteredTasks = allMonthTasks;
+    title = "งานทั้งหมด";
+  }
+
+  function categorizeTaskType(taskType) {
+    const tt = String(taskType || "");
+    if (tt.includes("ภ.พ.30") || tt.includes("VAT")) return "VAT";
+    if (tt.includes("ภ.ง.ด.")) return "ภาษีหัก ณ ที่จ่าย";
+    return "งานบัญชีประจำเดือน";
+  }
+
+  const categoryOrder = ["ภาษีหัก ณ ที่จ่าย", "VAT", "งานบัญชีประจำเดือน"];
+
+  pageContent.innerHTML = `
+    <div class="page-heading">
+      <div>
+        <div class="eyebrow">ACC TRACKER / WORKSPACE</div>
+        <h1>${escapeHTML(title)}</h1>
+        <p>เดือนภาษี ${THAI_MONTHS[tax.month - 1]} ${taxYear} • ${filteredTasks.length} รายการ</p>
+      </div>
+      <button class="text-button" onclick="renderDashboard()">กลับสู่ Dashboard</button>
+    </div>
+
+    <div class="module-view">
+      ${categoryOrder.map(category => {
+        const typeTasks = filteredTasks.filter(t => categorizeTaskType(t.task_type) === category);
+        if (typeTasks.length === 0) return "";
+
+        return `
+          <div class="task-type-section">
+            <div class="task-type-header">
+              <span class="task-type-name">${escapeHTML(category)}</span>
+              <span class="task-type-stats">${typeTasks.length} รายการ</span>
+            </div>
+            <div class="task-company-items">
+              ${typeTasks.map(task => `
+                <div class="task-row">
+                  <div class="task-symbol doc">☷</div>
+                  <div class="task-info">
+                    <strong>${escapeHTML(getTaskCompanyName(task))}</strong>
+                    <div class="muted small">${escapeHTML(task.company_code || "")} • ${escapeHTML(task.task_type)}</div>
+                  </div>
+                  <div class="task-meta">
+                    <span class="status-pill ${task.status === 'เสร็จแล้ว' ? 'green-text' : ''}">${escapeHTML(task.status)}</span>
+                    <span class="due-date">${getDueDateText(task.task_type, taxYear, taxMonth)}</span>
+                  </div>
+                </div>
+              `).join("")}
+            </div>
+          </div>
+        `;
+      }).join("")}
+
+      ${filteredTasks.length === 0 ? `
+        <div class="module-empty">
+          <div class="empty-icon">✓</div>
+          <strong>ไม่พบงานในหมวดนี้</strong>
+          <p>เดือนภาษี ${THAI_MONTHS[tax.month - 1]} ${taxYear}</p>
+        </div>
+      ` : ""}
+    </div>
+
+    <div class="footer-note">
+      ACC TRACKER <span>•</span> VERSION 0.2
+    </div>
+  `;
+
+  location.hash = "tasklist-" + filterType;
+}
+
+function renderCompanyDashboard(companyId) {
+  currentPage = "company";
+
+  const tax = getTaxMonth();
+  const taxYear = tax.year;
+  const taxMonth = tax.month;
+
+  const companyTasks = tasks.filter(t =>
+    String(t.buddhist_year) === String(taxYear) &&
+    String(t.month) === String(taxMonth) &&
+    String(t.company_id) === String(companyId)
+  );
+
+  const companyName = companyTasks[0] ? getTaskCompanyName(companyTasks[0]) : companyId;
+  const companyCode = companyTasks[0]?.company_code || "";
+
+  const total = companyTasks.length;
+  const completed = companyTasks.filter(t => t.status === "เสร็จแล้ว").length;
+  const pending = companyTasks.filter(t =>
+    t.status === "ยังไม่เริ่ม" || t.status === "กำลังดำเนินการ"
+  ).length;
+  const pct = total ? (completed / total * 100) : 0;
+
+  function categorizeTaskType(taskType) {
+    const tt = String(taskType || "");
+    if (tt.includes("ภ.พ.30") || tt.includes("VAT")) return "VAT";
+    if (tt.includes("ภ.ง.ด.")) return "ภาษีหัก ณ ที่จ่าย";
+    return "งานบัญชีประจำเดือน";
+  }
+
+  const categoryOrder = ["ภาษีหัก ณ ที่จ่าย", "VAT", "งานบัญชีประจำเดือน"];
+
+  pageContent.innerHTML = `
+    <div class="page-heading">
+      <div>
+        <div class="eyebrow">ACC TRACKER / WORKSPACE</div>
+        <h1>งานของ ${escapeHTML(companyName)}</h1>
+        <p>${escapeHTML(companyCode)} • เดือนภาษี ${THAI_MONTHS[tax.month - 1]} ${taxYear}</p>
+      </div>
+      <button class="text-button" onclick="renderDashboard()">กลับสู่ Dashboard</button>
+    </div>
+
+    <div class="module-view">
+      <div class="progress-summary-card">
+        <div class="progress-stats">
+          <div class="stat-item">
+            <span class="stat-label">งานทั้งหมด</span>
+            <span class="stat-value">${total}</span>
+          </div>
+          <div class="stat-item">
+            <span class="stat-label">เสร็จแล้ว</span>
+            <span class="stat-value green-text">${completed}</span>
+          </div>
+          <div class="stat-item">
+            <span class="stat-label">ค้างดำเนินการ</span>
+            <span class="stat-value red-text">${pending}</span>
+          </div>
+        </div>
+        <div class="progress-overall">
+          <div class="progress-label">ความคืบหน้า: <span>${pct.toFixed(1)}%</span></div>
+          <div class="progress-track">
+            <div class="progress-fill" style="width:${pct}%"></div>
+          </div>
+        </div>
+      </div>
+
+      ${categoryOrder.map(category => {
+        const typeTasks = companyTasks.filter(t => categorizeTaskType(t.task_type) === category);
+        if (typeTasks.length === 0) return "";
+
+        const typeCompleted = typeTasks.filter(t => t.status === "เสร็จแล้ว").length;
+        const typePct = typeTasks.length ? (typeCompleted / typeTasks.length * 100) : 0;
+
+        return `
+          <div class="task-type-section">
+            <div class="task-type-header">
+              <span class="task-type-name">${escapeHTML(category)}</span>
+              <span class="task-type-stats">${typeTasks.length} รายการ • เสร็จ ${typeCompleted}</span>
+              <span class="task-type-progress">${typePct.toFixed(1)}%</span>
+            </div>
+            <div class="task-type-progress-bar">
+              <div class="progress-fill" style="width:${typePct}%"></div>
+            </div>
+            <div class="task-company-items">
+              ${typeTasks.map(task => `
+                <div class="task-row">
+                  <div class="task-symbol doc">☷</div>
+                  <div class="task-info">
+                    <strong>${escapeHTML(task.task_type)}</strong>
+                    <div class="muted small">${escapeHTML(task.status)}</div>
+                  </div>
+                  <div class="task-meta">
+                    <select class="filter-chip task-status-select" data-task-id="${escapeHTML(task.task_id)}" style="max-width:170px">
+                      ${TASK_STATUSES.map(status => `
+                        <option value="${escapeHTML(status)}" ${task.status === status ? "selected" : ""}>
+                          ${escapeHTML(status)}
+                        </option>
+                      `).join("")}
+                    </select>
+                    <span class="due-date">${getDueDateText(task.task_type, taxYear, taxMonth)}</span>
+                    ${task.notes ? `<span class="task-note">${escapeHTML(task.notes)}</span>` : ""}
+                  </div>
+                </div>
+              `).join("")}
+            </div>
+          </div>
+        `;
+      }).join("")}
+
+      ${companyTasks.length === 0 ? `
+        <div class="module-empty">
+          <div class="empty-icon">📭</div>
+          <strong>ไม่มีงานของบริษัทนี้ในเดือนนี้</strong>
+        </div>
+      ` : ""}
+    </div>
+
+    <div class="footer-note">
+      ACC TRACKER <span>•</span> VERSION 0.2
+    </div>
+  `;
+
+  pageContent.querySelectorAll(".task-status-select").forEach(select => {
+    select.addEventListener("change", async event => {
+      await updateTaskStatus(
+        event.target.dataset.taskId,
+        event.target.value,
+        event.target
+      );
+      renderCompanyDashboard(companyId);
+    });
+  });
+
+  location.hash = "company-" + companyId;
+}
+
+function filterPendingByCompany(companyId) {
+  currentPage = "pending";
+
+  const tax = getTaxMonth();
+  const taxYear = tax.year;
+  const taxMonth = tax.month;
+
+  const companyTasks = tasks.filter(t =>
+    String(t.buddhist_year) === String(taxYear) &&
+    String(t.month) === String(taxMonth) &&
+    String(t.company_id) === String(companyId) &&
+    (t.status === "ยังไม่เริ่ม" || t.status === "กำลังดำเนินการ")
+  );
+
+  const companyName = getTaskCompanyName(companyTasks[0]) || companyId;
+  const companyCode = companyTasks[0]?.company_code || "";
+
+  function categorizeTaskType(taskType) {
+    const tt = String(taskType || "");
+    if (tt.includes("ภ.พ.30") || tt.includes("VAT")) return "VAT";
+    if (tt.includes("ภ.ง.ด.")) return "ภาษีหัก ณ ที่จ่าย";
+    return "งานบัญชีประจำเดือน";
+  }
+
+  const categoryOrder = ["ภาษีหัก ณ ที่จ่าย", "VAT", "งานบัญชีประจำเดือน"];
+
+  pageContent.innerHTML = `
+    <div class="page-heading">
+      <div>
+        <div class="eyebrow">ACC TRACKER / WORKSPACE</div>
+        <h1>งานของ ${escapeHTML(companyName)}</h1>
+        <p>${escapeHTML(companyCode)} • เดือนภาษี ${THAI_MONTHS[tax.month - 1]} ${taxYear}</p>
+      </div>
+      <button class="text-button" onclick="renderPendingTasks()">กลับหน้างานค้าง</button>
+    </div>
+
+    <div class="module-view">
+      ${categoryOrder.map(category => {
+        const typeTasks = companyTasks.filter(t => categorizeTaskType(t.task_type) === category);
+        if (typeTasks.length === 0) return "";
+
+        return `
+          <div class="task-type-section">
+            <div class="task-type-header">
+              <span class="task-type-name">${escapeHTML(category)}</span>
+              <span class="task-type-stats">${typeTasks.length} รายการ</span>
+            </div>
+            <div class="task-company-items">
+              ${typeTasks.map(task => `
+                <div class="task-row">
+                  <div class="task-symbol doc">☷</div>
+                  <div class="task-info">
+                    <strong>${escapeHTML(task.task_type)}</strong>
+                    <div class="muted small">${escapeHTML(task.status)}</div>
+                  </div>
+                  <div class="task-meta">
+                    <select class="filter-chip task-status-select" data-task-id="${escapeHTML(task.task_id)}" style="max-width:170px">
+                      ${TASK_STATUSES.map(status => `
+                        <option value="${escapeHTML(status)}" ${task.status === status ? "selected" : ""}>
+                          ${escapeHTML(status)}
+                        </option>
+                      `).join("")}
+                    </select>
+                    <span class="due-date">${getDueDateText(task.task_type, taxYear, taxMonth)}</span>
+                    ${task.notes ? `<span class="task-note">${escapeHTML(task.notes)}</span>` : ""}
+                  </div>
+                </div>
+              `).join("")}
+            </div>
+          </div>
+        `;
+      }).join("")}
+
+      ${companyTasks.length === 0 ? `
+        <div class="module-empty">
+          <div class="empty-icon">✓</div>
+          <strong>ไม่มีงานค้างของบริษัทนี้ในเดือนนี้</strong>
+        </div>
+      ` : ""}
+    </div>
+
+    <div class="footer-note">
+      ACC TRACKER <span>•</span> VERSION 0.2
+    </div>
+  `;
+
+  pageContent.querySelectorAll(".task-status-select").forEach(select => {
+    select.addEventListener("change", async event => {
+      await updateTaskStatus(
+        event.target.dataset.taskId,
+        event.target.value,
+        event.target
+      );
+      filterPendingByCompany(companyId);
+    });
+  });
+
+  location.hash = "pending-" + companyId;
 }
 
 function setText(id, value) {
   const element = document.getElementById(id);
 
   if (element) element.textContent = value;
+}
+
+function getTaxMonthDisplay() {
+  let taxMonthIndex = currentMonthIndex - 1;
+  let taxYear = currentBuddhistYear;
+
+  if (taxMonthIndex < 0) {
+    taxMonthIndex = 11;
+    taxYear -= 1;
+  }
+
+  return "เดือนภาษี: " + THAI_MONTHS[taxMonthIndex] + " " + taxYear;
+}
+
+function updateMonthDisplay() {
+  const processingEl = document.getElementById("processingMonthDisplay");
+  const taxEl = document.getElementById("taxMonthDisplay");
+
+  if (processingEl) {
+    processingEl.textContent = THAI_MONTHS[currentMonthIndex] + " " + currentBuddhistYear;
+  }
+
+  if (taxEl) {
+    taxEl.textContent = getTaxMonthDisplay();
+  }
+}
+
+function initMonthControl() {
+  const prevBtn = document.getElementById("prevMonth");
+  const nextBtn = document.getElementById("nextMonth");
+
+  if (prevBtn) {
+    prevBtn.addEventListener("click", () => {
+      currentMonthIndex -= 1;
+      if (currentMonthIndex < 0) {
+        currentMonthIndex = 11;
+        currentBuddhistYear -= 1;
+      }
+      updateMonthDisplay();
+      renderDashboardData();
+    });
+  }
+
+  if (nextBtn) {
+    nextBtn.addEventListener("click", () => {
+      currentMonthIndex += 1;
+      if (currentMonthIndex > 11) {
+        currentMonthIndex = 0;
+        currentBuddhistYear += 1;
+      }
+      updateMonthDisplay();
+      renderDashboardData();
+    });
+  }
+
+  updateMonthDisplay();
+  renderDashboardData();
 }
 
 
@@ -603,6 +1313,8 @@ function renderDashboard() {
   pageContent.innerHTML = template.innerHTML;
 
   renderDashboardData();
+
+  initMonthControl();
 }
 
 function renderModule(page) {
@@ -940,6 +1652,10 @@ async function updateTaskStatus(taskId, newStatus, selectElement) {
       renderDashboardData();
     }
 
+    if (currentPage === "pending") {
+      renderPendingTasks();
+    }
+
   } catch (err) {
     console.error("Update task error:", err);
 
@@ -992,6 +1708,37 @@ document.addEventListener("click", event => {
   setActive(page);
   renderModule(page);
   closeMenu();
+});
+
+document.addEventListener("click", event => {
+  const target = event.target.closest("[data-click]");
+
+  if (!target) return;
+
+  const action = target.dataset.click;
+
+  if (action === "pending") {
+    renderPendingTasks();
+    closeMenu();
+  }
+});
+
+document.addEventListener("click", event => {
+  const target = event.target.closest("[data-filter]");
+
+  if (!target) return;
+
+  const filter = target.dataset.filter;
+
+  if (filter === "all") {
+    renderTasksByStatus("all");
+    closeMenu();
+  }
+
+  if (filter === "completed") {
+    renderTasksByStatus("completed");
+    closeMenu();
+  }
 });
 
 
