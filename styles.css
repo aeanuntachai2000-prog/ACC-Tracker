@@ -1127,4 +1127,48 @@
   }
 }
 
+/* FIXED MONTH NAVIGATION POSITION */
 
+.page-heading > .month-control {
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+  gap: 8px;
+}
+
+.month-control .icon-btn {
+  flex: 0 0 30px;
+  width: 30px;
+  height: 30px;
+}
+
+.month-info {
+  flex: 0 0 150px;
+  width: 150px;
+  min-width: 150px;
+}
+
+/* CENTER MONTH BETWEEN ARROWS */
+
+.page-heading > .month-control {
+  display: grid;
+  grid-template-columns: 30px 150px 30px;
+  align-items: center;
+  justify-content: start;
+  column-gap: 8px;
+}
+
+.month-control .icon-btn {
+  width: 30px;
+  height: 30px;
+  flex: none;
+}
+
+.month-info {
+  width: 150px;
+  min-width: 150px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+}

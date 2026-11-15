@@ -1461,17 +1461,21 @@ function updateMonthDisplay() {
   }
 }
 
+
 function initMonthControl() {
   const prevBtn = document.getElementById("prevMonth");
   const nextBtn = document.getElementById("nextMonth");
+  const todayBtn = document.getElementById("todayButton");
 
   if (prevBtn) {
     prevBtn.addEventListener("click", () => {
       currentMonthIndex -= 1;
+
       if (currentMonthIndex < 0) {
         currentMonthIndex = 11;
         currentBuddhistYear -= 1;
       }
+
       updateMonthDisplay();
       renderDashboardData();
     });
@@ -1480,18 +1484,35 @@ function initMonthControl() {
   if (nextBtn) {
     nextBtn.addEventListener("click", () => {
       currentMonthIndex += 1;
+
       if (currentMonthIndex > 11) {
         currentMonthIndex = 0;
         currentBuddhistYear += 1;
       }
+
       updateMonthDisplay();
       renderDashboardData();
+    });
+  }
+
+  if (todayBtn) {
+    todayBtn.addEventListener("click", () => {
+      const today = new Date();
+
+      currentMonthIndex = today.getMonth();
+      currentBuddhistYear = today.getFullYear() + 543;
+
+      updateMonthDisplay();
+      renderDashboardData();
+
+      showToast("กลับสู่เดือนปัจจุบันแล้ว");
     });
   }
 
   updateMonthDisplay();
   renderDashboardData();
 }
+
 
 
 /* 11. NAVIGATION */
@@ -2976,16 +2997,18 @@ document.addEventListener("click", event => {
 
 
 /* 17. DATE */
-
 document.getElementById("todayButton")
   ?.addEventListener("click", () => {
-    showToast(
-      new Date().toLocaleDateString("th-TH", {
-        dateStyle: "long"
-      })
-    );
-  });
+    const today = new Date();
 
+    currentMonthIndex = today.getMonth();
+    currentBuddhistYear = today.getFullYear() + 543;
+
+    updateMonthDisplay();
+    renderDashboardData();
+
+    showToast("กลับสู่เดือนปัจจุบันแล้ว");
+  });
 
 /* 18. INSTALL PWA */
 
