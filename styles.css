@@ -1329,3 +1329,58 @@ body {
     font-size: 9px;
   }
 }
+
+/* =========================================
+   TASK FILTERS — MOBILE 2 COLUMNS
+========================================= */
+
+@media (max-width: 600px) {
+  .module-toolbar:has(#taskSearch) {
+    display: grid !important;
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+    gap: 10px !important;
+  }
+
+  #taskSearch {
+    grid-column: 1 / -1;
+    width: 100%;
+    min-width: 0;
+  }
+
+  #taskYearFilter,
+  #taskMonthFilter,
+  #taskCompanyFilter,
+  #taskTypeFilter,
+  #taskStatusFilter {
+    width: 100%;
+    min-width: 0;
+  }
+}
+
+/* Completed task status */
+.status-pill.status-done {
+  background: rgba(46, 160, 95, 0.16);
+  color: #4ade80;
+  border: 1px solid rgba(74, 222, 128, 0.3);
+}
+
+/* MOBILE NAV ICONS */
+.mobile-nav-item .nav-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 25px;
+  height: 25px;
+  color: #858d8e;
+  transition: color .2s ease, transform .2s ease;
+}
+
+.mobile-nav-item .nav-icon svg {
+  width: 23px;
+  height: 23px;
+}
+
+.mobile-nav-item.active .nav-icon {
+  color: #c6a45b;
+  transform: translateY(-2px);
+}

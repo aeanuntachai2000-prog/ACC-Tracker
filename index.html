@@ -397,38 +397,65 @@
       </section>
     </main>
   </div>
-
   
-  <!-- MOBILE NAVIGATION -->
-  <nav class="mobile-nav" aria-label="เมนูด้านล่าง">
+<!-- MOBILE NAVIGATION -->
+<nav class="mobile-nav" aria-label="เมนูด้านล่าง">
 
-    <button class="mobile-nav-item active" data-page="dashboard">
-      <span>▦</span>
-      <small>หน้าหลัก</small>
-    </button>
+  <button class="mobile-nav-item active" data-page="dashboard">
+    <span class="nav-icon">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round">
+        <rect x="3" y="3" width="8" height="8" rx="1.5"/>
+        <rect x="13" y="3" width="8" height="5" rx="1.5"/>
+        <rect x="13" y="10" width="8" height="11" rx="1.5"/>
+        <rect x="3" y="13" width="8" height="8" rx="1.5"/>
+      </svg>
+    </span>
+    <small>หน้าหลัก</small>
+  </button>
 
-    <button class="mobile-nav-item" data-page="tasks">
-      <span>☷</span>
-      <small>งาน</small>
-    </button>
+  <button class="mobile-nav-item" data-page="tasks">
+    <span class="nav-icon">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round">
+        <rect x="4" y="3" width="16" height="18" rx="2"/>
+        <path d="M8 8h8M8 12h8M8 16h5"/>
+        <path d="m7 8 0 0"/>
+      </svg>
+    </span>
+    <small>งาน</small>
+  </button>
 
-    <button class="mobile-nav-item" data-page="calendar">
-      <span>▦</span>
-      <small>ปฏิทิน</small>
-    </button>
+  <button class="mobile-nav-item" data-page="calendar">
+    <span class="nav-icon">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round">
+        <rect x="3" y="5" width="18" height="16" rx="2"/>
+        <path d="M16 3v4M8 3v4M3 10h18"/>
+        <path d="M8 14h2M14 14h2M8 17h2"/>
+      </svg>
+    </span>
+    <small>ปฏิทิน</small>
+  </button>
 
-    <button class="mobile-nav-item" data-page="reports">
-      <span>▥</span>
-      <small>รายงาน</small>
-    </button>
+  <button class="mobile-nav-item" data-page="reports">
+    <span class="nav-icon">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M4 20V10M10 20V4M16 20v-7M22 20H2"/>
+      </svg>
+    </span>
+    <small>รายงาน</small>
+  </button>
 
-    <button class="mobile-nav-item" id="mobileMore">
-      <span>···</span>
-      <small>เพิ่มเติม</small>
-    </button>
+  <button class="mobile-nav-item" id="mobileMore">
+    <span class="nav-icon">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round">
+        <circle cx="5" cy="12" r="1"/>
+        <circle cx="12" cy="12" r="1"/>
+        <circle cx="19" cy="12" r="1"/>
+      </svg>
+    </span>
+    <small>เพิ่มเติม</small>
+  </button>
 
-  </nav>
-
+</nav>
 
   <!-- TOAST -->
   <div class="toast" id="toast" role="status"></div>

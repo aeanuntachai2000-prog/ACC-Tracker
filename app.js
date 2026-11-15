@@ -767,6 +767,15 @@ function renderDashboardData() {
               if (taskViewMode === "month") {
                 const task = company.tasks[0];
 
+                // ไม่แสดงบริษัทที่สถานะไม่เกี่ยวข้อง
+                if (!task || task.status === "ไม่เกี่ยวข้อง") {
+                  return "";
+                }
+
+                const statusClass = task.status === "เสร็จแล้ว"
+                  ? "status-done"
+                  : "";
+
                 return `
                   <div class="task-row">
                     <div class="task-symbol doc">☷</div>
@@ -775,7 +784,7 @@ function renderDashboardData() {
                       <div class="muted small">${escapeHTML(company.code)}</div>
                     </div>
                     <div class="task-meta">
-                      <span class="status-pill">${escapeHTML(task.status)}</span>
+                      <span class="status-pill ${statusClass}">${escapeHTML(task.status)}</span>
                       <span class="due-date">${getDueDateText(taskType, taxYear, taxMonth)}</span>
                     </div>
                   </div>
@@ -3091,12 +3100,11 @@ async function startApplication() {
       logoutButton.addEventListener("click", logout);
     }
 
-    const initial = (location.hash || "#dashboard").slice(1);
+    // เปิดแอปที่หน้าหลักทุกครั้ง
+    location.hash = "dashboard";
 
-    const page = pageMeta[initial] ? initial : "dashboard";
-
-    setActive(page);
-    renderModule(page);
+    setActive("dashboard");
+    renderModule("dashboard");
 
     showToast("เชื่อมต่อ ACC Tracker สำเร็จ");
 
