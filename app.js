@@ -2558,28 +2558,61 @@ function renderCompanyTable() {
 
 /* 13. TASKS PAGE */
 
+
 function renderTasksPage() {
   pageContent.innerHTML = `
     <div class="page-heading">
       <div>
         <div class="eyebrow">ACC TRACKER / WORKSPACE</div>
-        <h1>Tasks</h1>
-        <p>รายการงานทั้งหมด ${formatNumber(tasks.length)} รายการ</p>
+        <h1>งานทั้งหมด</h1>
+        <p>ค้นหาและจัดการรายการงานบัญชี</p>
       </div>
     </div>
 
     <div class="module-view">
-      <div class="module-toolbar" style="flex-wrap:wrap">
+      <div class="module-toolbar" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(190px,1fr));gap:12px;">
+
         <input
           class="search-box"
           type="search"
           id="taskSearch"
-          placeholder="ค้นหาบริษัทหรือประเภทงาน..."
+          placeholder="ค้นหาบริษัท / Company Code / ประเภทงาน"
         >
+
+        <select class="filter-chip" id="taskYearFilter">
+          <option value="">ทุกปี</option>
+          ${[...new Set(tasks.map(t => String(t.buddhist_year)))].sort((a,b) => Number(b)-Number(a)).map(year => `
+            <option value="${escapeHTML(year)}">${escapeHTML(year)}</option>
+          `).join("")}
+        </select>
+
+        <select class="filter-chip" id="taskMonthFilter">
+          <option value="">ทุกเดือน</option>
+          ${Array.from({length:12},(_,i) => i+1).map(month => `
+            <option value="${month}">${month}</option>
+          `).join("")}
+        </select>
+
+        <select class="filter-chip" id="taskCompanyFilter">
+          <option value="">ทุกบริษัท</option>
+          ${companies.map(company => `
+            <option value="${escapeHTML(String(company.company_id))}">
+              ${escapeHTML(company.company_name || company.company_code || company.company_id)}
+            </option>
+          `).join("")}
+        </select>
+
+        <select class="filter-chip" id="taskTypeFilter">
+          <option value="">ทุกประเภทงาน</option>
+          ${[...new Set(tasks.map(t => t.task_type).filter(Boolean))].sort().map(type => `
+            <option value="${escapeHTML(type)}">
+              ${escapeHTML(type)}
+            </option>
+          `).join("")}
+        </select>
 
         <select class="filter-chip" id="taskStatusFilter">
           <option value="">ทุกสถานะ</option>
-
           ${TASK_STATUSES.map(status => `
             <option value="${escapeHTML(status)}">
               ${escapeHTML(status)}
@@ -2588,7 +2621,22 @@ function renderTasksPage() {
         </select>
       </div>
 
-      <div id="taskTableContainer"></div>
+      <div style="display:flex;gap:10px;margin-top:14px;flex-wrap:wrap;">
+        <button class="btn btn-primary" id="taskSearchButton">
+          ค้นหา
+        </button>
+
+        <button class="btn btn-secondary" id="taskResetButton">
+          ล้างตัวกรอง
+        </button>
+      </div>
+
+      <div id="taskTableContainer" style="margin-top:18px;">
+        <div class="module-empty">
+          <strong>ยังไม่ได้ค้นหา</strong>
+          <p>เลือกตัวกรองแล้วกดค้นหาเพื่อแสดงรายการงาน</p>
+        </div>
+      </div>
     </div>
 
     <div class="footer-note">
@@ -2596,21 +2644,54 @@ function renderTasksPage() {
     </div>
   `;
 
+  document.getElementById("taskSearchButton")
+    .addEventListener("click", renderTaskTable);
+
   document.getElementById("taskSearch")
-    .addEventListener("input", renderTaskTable);
+    .addEventListener("keydown", event => {
+      if (event.key === "Enter") renderTaskTable();
+    });
 
-  document.getElementById("taskStatusFilter")
-    .addEventListener("change", renderTaskTable);
+  document.getElementById("taskResetButton")
+    .addEventListener("click", () => {
+      document.getElementById("taskSearch").value = "";
+      document.getElementById("taskYearFilter").value = "";
+      document.getElementById("taskMonthFilter").value = "";
+      document.getElementById("taskCompanyFilter").value = "";
+      document.getElementById("taskTypeFilter").value = "";
+      document.getElementById("taskStatusFilter").value = "";
 
-  renderTaskTable();
+      const container = document.getElementById("taskTableContainer");
+
+      container.innerHTML = `
+        <div class="module-empty">
+          <strong>ยังไม่ได้ค้นหา</strong>
+          <p>เลือกตัวกรองแล้วกดค้นหาเพื่อแสดงรายการงาน</p>
+        </div>
+      `;
+    });
 
   location.hash = "tasks";
 }
 
+
+
 function renderTaskTable() {
   const query = (
     document.getElementById("taskSearch")?.value || ""
-  ).toLowerCase();
+  ).trim().toLowerCase();
+
+  const yearFilter =
+    document.getElementById("taskYearFilter")?.value || "";
+
+  const monthFilter =
+    document.getElementById("taskMonthFilter")?.value || "";
+
+  const companyFilter =
+    document.getElementById("taskCompanyFilter")?.value || "";
+
+  const typeFilter =
+    document.getElementById("taskTypeFilter")?.value || "";
 
   const statusFilter =
     document.getElementById("taskStatusFilter")?.value || "";
@@ -2621,14 +2702,39 @@ function renderTaskTable() {
     const companyCode = String(task.company_code || "").toLowerCase();
 
     const matchesQuery =
+      !query ||
       companyName.includes(query) ||
       taskType.includes(query) ||
       companyCode.includes(query);
 
-    const matchesStatus =
-      !statusFilter || task.status === statusFilter;
+    const matchesYear =
+      !yearFilter ||
+      String(task.buddhist_year) === yearFilter;
 
-    return matchesQuery && matchesStatus;
+    const matchesMonth =
+      !monthFilter ||
+      String(task.month) === monthFilter;
+
+    const matchesCompany =
+      !companyFilter ||
+      String(task.company_id) === companyFilter;
+
+    const matchesType =
+      !typeFilter ||
+      task.task_type === typeFilter;
+
+    const matchesStatus =
+      !statusFilter ||
+      task.status === statusFilter;
+
+    return (
+      matchesQuery &&
+      matchesYear &&
+      matchesMonth &&
+      matchesCompany &&
+      matchesType &&
+      matchesStatus
+    );
   });
 
   const container = document.getElementById("taskTableContainer");
@@ -2637,7 +2743,10 @@ function renderTaskTable() {
 
   if (!filtered.length) {
     container.innerHTML = `
-      <div class="module-empty">ไม่พบรายการงาน</div>
+      <div class="module-empty">
+        <strong>ไม่พบรายการงาน</strong>
+        <p>ไม่พบข้อมูลที่ตรงกับตัวกรองที่เลือก</p>
+      </div>
     `;
     return;
   }
@@ -2699,6 +2808,7 @@ function renderTaskTable() {
     <p class="muted small" style="padding:12px">
       แสดง ${formatNumber(displayRows.length)} รายการ
       จาก ${formatNumber(filtered.length)} รายการที่ค้นพบ
+      ${filtered.length > 200 ? " (จำกัดการแสดงผล 200 รายการแรก)" : ""}
     </p>
   `;
 
@@ -2712,6 +2822,7 @@ function renderTaskTable() {
     });
   });
 }
+
 
 
 /* 14. UPDATE TASK STATUS */

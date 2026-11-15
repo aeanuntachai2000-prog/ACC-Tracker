@@ -990,3 +990,141 @@
   }
 }
 
+
+/* =====================================
+   TASK FILTER ACTION BUTTONS
+===================================== */
+
+#taskSearchButton {
+  background: linear-gradient(135deg, #c6a45b, #a9853d);
+  color: #171717;
+  border: 1px solid #c6a45b;
+  font-weight: 700;
+}
+
+#taskSearchButton:hover {
+  background: #d6b96f;
+  box-shadow: 0 0 12px rgba(198, 164, 91, 0.2);
+}
+
+#taskResetButton {
+  background: #282c30;
+  color: #d8c69f;
+  border: 1px solid rgba(198, 164, 91, 0.35);
+}
+
+#taskResetButton:hover {
+  background: #353a3f;
+  border-color: #c6a45b;
+  color: #ffffff;
+}
+
+#taskSearchButton,
+#taskResetButton {
+  border-radius: 10px;
+}
+
+/* =====================================
+   DASHBOARD MOBILE HEADER
+===================================== */
+
+@media (max-width: 700px) {
+
+  .page-heading {
+    display: grid;
+    grid-template-columns: 1fr auto;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 18px;
+  }
+
+  .page-heading > div:first-child {
+    grid-column: 1 / -1;
+  }
+
+  .page-heading h1 {
+    font-size: 21px;
+    margin: 0;
+  }
+
+  .page-heading > .date-chip {
+    grid-column: 2;
+    grid-row: 2;
+  }
+
+  .page-heading > .month-control {
+    grid-column: 1;
+    grid-row: 2;
+    min-width: 0;
+  }
+
+}
+
+
+/* =====================================
+   DASHBOARD MOBILE HEADER
+===================================== */
+
+@media (max-width: 700px) {
+
+  .page-heading {
+    display: grid;
+    grid-template-columns: 1fr auto;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 18px;
+  }
+
+  .page-heading > div:first-child {
+    grid-column: 1;
+    grid-row: 1;
+  }
+
+  .page-heading h1 {
+    font-size: 21px;
+    margin: 0;
+  }
+
+  .page-heading > .date-chip {
+    grid-column: 2;
+    grid-row: 1;
+    justify-self: end;
+  }
+
+  .page-heading > .month-control {
+    grid-column: 1 / -1;
+    grid-row: 2;
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    justify-content: flex-start;
+    gap: 8px;
+    width: 100%;
+  }
+
+
+  .month-info {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 3px;
+  }
+
+  .month-label.processing {
+    font-size: 13px;
+    font-weight: 700;
+    white-space: nowrap;
+  }
+
+  .month-label.tax {
+    font-size: 10px;
+    white-space: nowrap;
+  }
+
+  .month-control .icon-btn {
+    width: 30px;
+    height: 30px;
+  }
+}
+
+
