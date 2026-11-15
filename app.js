@@ -19,6 +19,8 @@ const sbClient = window.supabase.createClient(
   SUPABASE_PUBLISHABLE_KEY
 );
 
+window.accSupabaseClient = sbClient;
+
 
 /* 2. GLOBAL STATE */
 
