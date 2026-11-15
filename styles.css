@@ -6,3 +6,987 @@
 @media(max-width:1050px){.page-content{padding:28px 25px}.topbar{padding:0 25px}.dashboard-columns{grid-template-columns:1fr}.stats-grid{grid-template-columns:repeat(2,minmax(0,1fr))}}
 @media(max-width:700px){:root{--sidebar:280px}.sidebar{transform:translateX(-105%);transition:transform .24s ease;box-shadow:15px 0 40px rgba(0,0,0,.35);padding-top:max(20px,env(safe-area-inset-top))}.sidebar.open{transform:translateX(0)}.close-sidebar{display:grid;margin-left:auto;font-size:24px}.sidebar-scrim.show{display:block;position:fixed;z-index:25;inset:0;background:rgba(0,0,0,.58)}.main-area{margin-left:0;padding-bottom:calc(67px + env(safe-area-inset-bottom))}.topbar{height:58px;padding:0 16px}.menu-toggle{display:grid;margin-left:-7px;margin-right:7px}.breadcrumb{font-size:10px;gap:7px}.topbar-actions{gap:8px}.top-avatar{width:27px;height:27px}.page-content{padding:23px 16px 18px}.page-heading{margin-bottom:17px}.page-heading h1{font-size:23px}.page-heading p{font-size:10px}.date-chip{padding:8px 10px;font-size:10px}.welcome-panel{min-height:166px;padding:21px 19px;margin-bottom:23px}.welcome-copy h2{font-size:21px}.welcome-copy p{font-size:9px;max-width:220px;line-height:1.6}.welcome-art{right:-76px;opacity:.45}.stats-grid{gap:9px}.stat-card{min-height:105px;padding:12px}.stat-top{font-size:10px}.stat-value{font-size:25px}.stat-foot{font-size:8px}.section-heading h2,.panel-heading h2{font-size:14px}.dashboard-columns{gap:10px;margin-top:12px}.panel{padding:14px}.task-row{gap:8px;padding:11px 0}.task-info strong{font-size:10px}.task-info span{font-size:8px}.status-pill{font-size:7px;padding:4px 6px}.progress-summary strong{font-size:27px}.mobile-nav{display:grid;grid-template-columns:repeat(5,1fr);position:fixed;z-index:20;bottom:0;left:0;right:0;padding:7px 8px calc(7px + env(safe-area-inset-bottom));background:rgba(25,28,30,.97);border-top:1px solid #363b3e;backdrop-filter:blur(15px)}.mobile-nav-item{border:0;background:transparent;color:#828a8c;display:grid;justify-items:center;gap:3px;padding:2px 0}.mobile-nav-item span{font-size:18px;line-height:20px}.mobile-nav-item small{font-size:8px}.mobile-nav-item.active{color:var(--gold-light)}.footer-note{margin-top:19px}.module-toolbar{margin:15px 0}.module-empty{padding:28px 17px}}
 @media(min-width:701px){.menu-toggle{display:none}}
+
+/* ==========================================
+   ACC TRACKER - EXCEL IMPORT PREVIEW
+========================================== */
+
+.import-page {
+  display: grid;
+  gap: 20px;
+}
+
+.import-upload-panel {
+  padding: 22px;
+}
+
+.import-file-area {
+  margin: 20px 0;
+  padding: 24px;
+  border: 1px dashed var(--line);
+  border-radius: 12px;
+  background: var(--panel2);
+}
+
+.import-file-area label {
+  display: block;
+  margin-bottom: 12px;
+  color: var(--gold-light);
+  font-weight: 600;
+}
+
+.import-file-area input {
+  display: block;
+  width: 100%;
+  color: var(--text);
+}
+
+.import-summary {
+  margin-top: 24px;
+}
+
+.import-summary-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 12px;
+  margin: 18px 0 26px;
+}
+
+.import-summary-card {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 18px;
+  background: var(--panel2);
+  border: 1px solid var(--line);
+  border-radius: 12px;
+}
+
+.import-summary-card span {
+  color: var(--muted);
+  font-size: 13px;
+}
+
+.import-summary-card strong {
+  color: var(--gold-light);
+  font-size: 25px;
+}
+
+.import-detail-group {
+  margin-top: 28px;
+}
+
+.import-detail-group h3 {
+  margin-bottom: 14px;
+  color: var(--text);
+}
+
+.import-detail-group .table-wrap {
+  overflow-x: auto;
+}
+
+.import-detail-group table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.import-detail-group th,
+.import-detail-group td {
+  padding: 11px 13px;
+  border-bottom: 1px solid var(--line);
+  text-align: left;
+  white-space: nowrap;
+  font-size: 13px;
+}
+
+.import-detail-group th {
+  color: var(--gold-light);
+  background: var(--panel2);
+}
+
+.import-readonly-note {
+  margin-top: 24px;
+  padding: 14px;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  color: var(--green);
+  background: var(--panel2);
+}
+
+.import-error {
+  color: var(--red);
+  padding: 14px;
+  background: var(--panel2);
+  border-radius: 8px;
+}
+
+@media (max-width: 700px) {
+  .import-summary-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .import-upload-panel {
+    padding: 15px;
+  }
+}
+
+/* ACC TRACKER - CHANGE FILTER */
+
+.import-change-filter {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 12px;
+  margin: 16px 0;
+  padding: 14px;
+  background: var(--panel2);
+  border: 1px solid var(--line);
+  border-radius: 10px;
+}
+
+.import-change-filter label {
+  color: var(--gold-light);
+  font-weight: 600;
+}
+
+.import-change-filter select {
+  min-width: 220px;
+  padding: 10px 12px;
+  color: var(--text);
+  background: var(--panel3);
+  border: 1px solid var(--line);
+  border-radius: 8px;
+}
+
+
+/* ACC TRACKER - IMPORT PLAN */
+
+.import-plan {
+  margin-top: 24px;
+  padding: 20px;
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: 12px;
+}
+
+.import-plan-header {
+  margin-bottom: 18px;
+}
+
+.import-plan-header h3 {
+  margin: 0 0 5px;
+  color: var(--gold-light);
+}
+
+.import-plan-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.import-plan-card {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 14px;
+  background: var(--panel2);
+  border: 1px solid var(--line);
+  border-radius: 10px;
+}
+
+.import-plan-card > span {
+  color: var(--muted);
+  font-size: 13px;
+}
+
+.import-plan-card > strong {
+  font-size: 26px;
+  color: var(--gold-light);
+}
+
+.import-plan-card > b {
+  font-size: 13px;
+}
+
+.import-plan-card > small {
+  color: var(--muted);
+  line-height: 1.5;
+}
+
+.import-plan-status {
+  margin-top: 20px;
+  padding: 14px;
+  background: var(--panel2);
+  border-radius: 10px;
+}
+
+.import-plan-status h4 {
+  margin: 0 0 12px;
+}
+
+.import-plan-status p {
+  margin: 7px 0;
+}
+
+.import-plan-warning {
+  margin-top: 14px;
+  padding: 14px;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+}
+
+.import-plan-warning strong {
+  color: var(--gold-light);
+}
+
+.import-plan-warning p {
+  margin-bottom: 0;
+  color: var(--muted);
+  line-height: 1.6;
+}
+
+@media (max-width: 900px) {
+  .import-plan-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 480px) {
+  .import-plan {
+    padding: 12px;
+  }
+
+  .import-plan-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+
+
+/* ACC TRACKER - IMPORT APPROVAL SELECTION */
+
+.import-selection-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 12px;
+}
+
+.import-selection-actions button {
+  padding: 9px 15px;
+  color: var(--gold-light);
+  background: var(--panel3);
+  border: 1px solid var(--gold);
+  border-radius: 8px;
+  font-family: inherit;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.2s, color 0.2s;
+}
+
+.import-selection-actions button:hover {
+  color: #151719;
+  background: var(--gold);
+}
+
+.import-selection-count {
+  margin: 10px 0 0;
+  color: var(--gold-light);
+  font-size: 13px;
+  line-height: 1.8;
+}
+
+.import-detail-group input[type="checkbox"] {
+  width: 17px;
+  height: 17px;
+  accent-color: var(--gold);
+  cursor: pointer;
+}
+
+/* ACC TRACKER - APPROVAL PREVIEW */
+
+.import-approval-preview {
+  margin-top: 24px;
+  padding: 20px;
+  background: var(--panel);
+  border: 1px solid var(--gold);
+  border-radius: 12px;
+}
+
+.import-approval-preview h3 {
+  color: var(--gold-light);
+  margin-bottom: 16px;
+}
+
+.import-approval-item {
+  margin-top: 14px;
+  padding: 16px;
+  background: var(--panel2);
+  border: 1px solid var(--panel3);
+  border-radius: 10px;
+}
+
+.import-approval-item h4 {
+  color: var(--gold-light);
+  margin-bottom: 6px;
+}
+
+.import-approval-item .data-table {
+  margin-top: 12px;
+}
+
+/* ACC TRACKER - EXCEL APPROVAL ACTION */
+
+.import-approval-actions {
+  margin-top: 20px;
+  padding-top: 16px;
+  border-top: 1px solid var(--panel3);
+}
+
+.import-approval-actions button {
+  padding: 11px 20px;
+  color: #151719 !important;
+  background: var(--gold) !important;
+  border: 1px solid var(--gold) !important;
+  border-radius: 8px;
+  font-family: inherit;
+  font-size: 14px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: background 0.2s, color 0.2s;
+}
+
+.import-approval-actions button:hover:not(:disabled) {
+  color: #151719 !important;
+  background: var(--gold-light) !important;
+}
+
+.import-approval-actions button:disabled {
+  color: #777 !important;
+  background: #30353a !important;
+  border-color: #454a50 !important;
+  opacity: 1;
+  cursor: not-allowed;
+}
+
+#importImportSaveStatus,
+#accImportSaveStatus {
+  margin-top: 10px;
+  color: var(--gold-light);
+  font-size: 13px;
+}
+
+
+/* =========================================
+   ACC TRACKER — BLACK & GOLD NAVIGATION
+   Sidebar + Mobile Bottom Navigation
+========================================= */
+
+/* Sidebar */
+.sidebar {
+  background: linear-gradient(180deg, #17191a 0%, #111314 100%);
+  border-right: 1px solid rgba(198, 164, 91, 0.2);
+}
+
+.brand {
+  padding-bottom: 27px;
+}
+
+.brand-mark {
+  border-color: rgba(226, 201, 135, 0.8);
+  box-shadow: 0 0 18px rgba(198, 164, 91, 0.09);
+}
+
+.workspace-label {
+  color: #a58a54;
+  letter-spacing: 1.8px;
+}
+
+/* Sidebar menu */
+.nav-list {
+  gap: 6px;
+}
+
+.nav-item {
+  position: relative;
+  min-height: 46px;
+  border: 1px solid transparent;
+  border-radius: 9px;
+  color: #a7abad;
+  transition: background .2s ease, color .2s ease, border-color .2s ease;
+}
+
+.nav-item:hover {
+  background: rgba(198, 164, 91, 0.08);
+  border-color: rgba(198, 164, 91, 0.12);
+  color: #f0e6ce;
+}
+
+.nav-item.active {
+  background: linear-gradient(
+    100deg,
+    rgba(198, 164, 91, 0.19),
+    rgba(198, 164, 91, 0.045)
+  );
+  border-color: rgba(198, 164, 91, 0.16);
+  color: #e8d19a;
+  box-shadow: inset 3px 0 #c6a45b;
+}
+
+.nav-icon {
+  width: 21px;
+  font-size: 17px;
+  color: #858b8d;
+  transition: color .2s ease;
+}
+
+.nav-item:hover .nav-icon,
+.nav-item.active .nav-icon {
+  color: #e2c987;
+}
+
+.nav-count {
+  background: #302d25;
+  color: #d8c18b;
+  border: 1px solid rgba(198, 164, 91, 0.13);
+}
+
+/* Sidebar bottom */
+.sync-card {
+  background: linear-gradient(120deg, #25251f, #1c2021);
+  border-color: rgba(198, 164, 91, 0.2);
+}
+
+.profile {
+  border-top-color: rgba(198, 164, 91, 0.17);
+}
+
+/* Mobile bottom navigation */
+@media (max-width: 700px) {
+  .mobile-nav {
+    min-height: 65px;
+    grid-template-columns: repeat(5, minmax(0, 1fr));
+    padding: 8px 7px calc(8px + env(safe-area-inset-bottom));
+    background: rgba(17, 19, 20, 0.97);
+    border-top: 1px solid rgba(198, 164, 91, 0.25);
+    box-shadow: 0 -8px 25px rgba(0, 0, 0, 0.2);
+  }
+
+  .mobile-nav-item {
+    position: relative;
+    min-height: 43px;
+    align-content: center;
+    justify-items: center;
+    gap: 4px;
+    border-radius: 9px;
+    color: #858b8d;
+    transition: background .2s ease, color .2s ease;
+  }
+
+  .mobile-nav-item span {
+    font-size: 19px;
+    line-height: 22px;
+  }
+
+  .mobile-nav-item small {
+    font-size: 9px;
+    font-weight: 500;
+  }
+
+  .mobile-nav-item.active {
+    color: #e2c987;
+    background: rgba(198, 164, 91, 0.09);
+  }
+
+  .mobile-nav-item.active::before {
+    content: "";
+    position: absolute;
+    top: -8px;
+    left: 28%;
+    right: 28%;
+    height: 2px;
+    border-radius: 5px;
+    background: #c6a45b;
+    box-shadow: 0 0 8px rgba(198, 164, 91, 0.45);
+  }
+
+  .mobile-nav-item:active {
+    background: rgba(198, 164, 91, 0.15);
+  }
+
+  .sidebar {
+    border-right-color: rgba(198, 164, 91, 0.25);
+  }
+
+  .sidebar-scrim.show {
+    background: rgba(0, 0, 0, 0.68);
+    backdrop-filter: blur(2px);
+  }
+}
+
+
+/* =========================================
+   ACC TRACKER — PREMIUM TOPBAR
+========================================= */
+
+.topbar {
+  background: rgba(19, 21, 22, 0.94);
+  border-bottom: 1px solid rgba(198, 164, 91, 0.18);
+  box-shadow: 0 4px 18px rgba(0, 0, 0, 0.12);
+}
+
+.breadcrumb {
+  color: #85898a;
+}
+
+.breadcrumb b {
+  color: #625b49;
+}
+
+.breadcrumb strong {
+  color: #e4d5ad;
+  font-weight: 600;
+}
+
+.icon-btn {
+  border: 1px solid transparent;
+  border-radius: 9px;
+  transition: .2s ease;
+}
+
+.icon-btn:hover {
+  color: #e2c987;
+  background: rgba(198, 164, 91, 0.1);
+  border-color: rgba(198, 164, 91, 0.16);
+}
+
+.menu-toggle {
+  color: #d5bd83;
+}
+
+.menu-toggle:hover {
+  background: rgba(198, 164, 91, 0.1);
+}
+
+.notification-action i {
+  background: #d6b66e;
+  box-shadow: 0 0 7px rgba(214, 182, 110, 0.5);
+}
+
+.top-avatar {
+  border: 1px solid rgba(198, 164, 91, 0.45);
+  background: linear-gradient(145deg, #51452e, #29271f);
+  color: #f0d99f;
+}
+
+/* Mobile Topbar */
+@media (max-width: 700px) {
+  .topbar {
+    background: rgba(17, 19, 20, 0.97);
+    border-bottom-color: rgba(198, 164, 91, 0.2);
+  }
+
+  .menu-toggle {
+    border: 1px solid rgba(198, 164, 91, 0.16);
+    border-radius: 8px;
+  }
+
+  .breadcrumb strong {
+    color: #e2c987;
+  }
+
+  .topbar-actions {
+    gap: 6px;
+  }
+}
+
+
+/* =========================================
+   ACC TRACKER — COLLAPSIBLE TASK GROUPS
+========================================= */
+
+.task-group {
+  overflow: hidden;
+  border-bottom: 1px solid #343a3d;
+}
+
+.task-group-header {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-height: 45px;
+  padding: 10px 4px;
+  cursor: pointer;
+  list-style: none;
+  transition: background .2s ease;
+}
+
+.task-group-header::-webkit-details-marker {
+  display: none;
+}
+
+.task-group-header::marker {
+  content: "";
+}
+
+.task-group-header:hover {
+  background: rgba(198, 164, 91, 0.055);
+}
+
+.task-group-type {
+  flex: 1;
+  color: #e5e1d7;
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.task-group-count {
+  min-width: 27px;
+  padding: 4px 8px;
+  border: 1px solid rgba(198, 164, 91, .2);
+  border-radius: 20px;
+  background: rgba(198, 164, 91, .09);
+  color: #e2c987;
+  font-size: 10px;
+  text-align: center;
+}
+
+.task-group-chevron {
+  color: #c6a45b;
+  font-size: 17px;
+  transition: transform .2s ease;
+}
+
+.task-group[open] .task-group-chevron {
+  transform: rotate(180deg);
+}
+
+.task-group-items {
+  padding: 0 0 8px;
+  animation: taskGroupReveal .2s ease;
+}
+
+.task-group-items .task-row {
+  padding-left: 5px;
+  padding-right: 5px;
+}
+
+@keyframes taskGroupReveal {
+  from {
+    opacity: 0;
+    transform: translateY(-4px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@media (max-width: 700px) {
+  .task-group-header {
+    min-height: 48px;
+    padding: 11px 3px;
+  }
+
+  .task-group-type {
+    font-size: 11px;
+  }
+
+  .task-group-items .task-row {
+    gap: 8px;
+  }
+}
+
+
+.task-group-progress-info {
+  display: flex;
+  justify-content: space-between;
+  font-size: 9px;
+  color: #a9a49a;
+  margin: 5px 0 6px;
+}
+
+.task-group-progress-track {
+  width: 100%;
+  height: 5px;
+  background: #3a3e3f;
+  border-radius: 20px;
+  overflow: hidden;
+}
+
+.task-group-progress-fill {
+  height: 100%;
+  background: linear-gradient(90deg, #a98749, #e2c987);
+  border-radius: 20px;
+  transition: width .3s ease;
+}
+
+
+/* Dashboard: Monthly / Yearly Filter */
+.task-view-controls {
+  display: flex;
+  gap: 8px;
+  margin: 12px 0 16px;
+}
+
+.task-view-button {
+  appearance: none;
+  -webkit-appearance: none;
+  border: 1px solid #414448;
+  background: #202326;
+  color: #aaa9a3;
+  padding: 8px 18px;
+  border-radius: 9px;
+  font-family: inherit;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all .2s ease;
+}
+
+.task-view-button:hover {
+  border-color: #c6a45b;
+  color: #e5d2a1;
+}
+
+.task-view-button.active {
+  background: rgba(198, 164, 91, .16);
+  border-color: #c6a45b;
+  color: #e2c477;
+  box-shadow: inset 0 0 0 1px rgba(198, 164, 91, .12);
+}
+
+.task-view-button:focus-visible {
+  outline: 2px solid #c6a45b;
+  outline-offset: 2px;
+}
+
+
+/* =========================================
+   ACC TRACKER — TASK PROGRESS GROUP
+   Black & Gold
+========================================= */
+
+.task-group {
+  background: linear-gradient(145deg, #202326, #1b1e20);
+  border: 1px solid rgba(198, 164, 91, 0.16);
+  border-radius: 14px;
+  margin-bottom: 12px;
+  overflow: hidden;
+}
+
+.task-group-header {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  grid-template-areas:
+    "heading chevron"
+    "progress progress";
+  align-items: center;
+  gap: 13px 12px;
+  padding: 16px;
+  cursor: pointer;
+  list-style: none;
+}
+
+.task-group-header::-webkit-details-marker {
+  display: none;
+}
+
+.task-group-heading {
+  grid-area: heading;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+}
+
+.task-group-type {
+  color: #f0eee8;
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.task-group-count {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 34px;
+  height: 25px;
+  padding: 0 9px;
+  border-radius: 7px;
+  background: rgba(198, 164, 91, 0.12);
+  color: #d9b96f;
+  font-size: 11px;
+  font-weight: 600;
+}
+
+.task-group-progress {
+  grid-area: progress;
+  display: flex;
+  flex-direction: column;
+  gap: 9px;
+  width: 100%;
+}
+
+.task-group-progress-info {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 10px;
+  color: #a8a8a8;
+  font-size: 11px;
+}
+
+.task-group-progress-info span:last-child {
+  color: #d9b96f;
+  font-size: 12px;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+
+.task-group-progress-track {
+  width: 100%;
+  height: 6px;
+  border-radius: 20px;
+  background: #36383a;
+  overflow: hidden;
+}
+
+.task-group-progress-fill {
+  height: 100%;
+  border-radius: 20px;
+  background: linear-gradient(90deg, #98783d, #e0c17a);
+  transition: width 0.35s ease;
+}
+
+.task-group-chevron {
+  grid-area: chevron;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  border-radius: 8px;
+  color: #c6a45b;
+  background: rgba(198, 164, 91, 0.09);
+  transition: transform 0.25s ease;
+}
+
+.task-group[open] .task-group-chevron {
+  transform: rotate(180deg);
+}
+
+.task-group-items {
+  padding: 0 14px 12px;
+  border-top: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+.task-group-items .task-row {
+  border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+  padding: 12px 2px;
+}
+
+.task-group-items .task-row:last-child {
+  border-bottom: none;
+}
+
+@media (max-width: 480px) {
+  .task-group-header {
+    padding: 14px 12px;
+    gap: 11px 8px;
+  }
+
+  .task-group-type {
+    font-size: 13px;
+  }
+
+  .task-group-progress-info {
+    font-size: 10px;
+  }
+
+  .task-group-items {
+    padding-left: 10px;
+    padding-right: 10px;
+  }
+}
+
+
+/* =====================================
+   TOPBAR CONNECTION STATUS
+===================================== */
+
+.topbar-actions {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.topbar-actions .sync-card {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 7px 12px;
+  min-width: auto;
+  background: rgba(198, 164, 91, 0.08);
+  border: 1px solid rgba(198, 164, 91, 0.3);
+  border-radius: 9px;
+  box-shadow: none;
+}
+
+.topbar-actions .sync-icon {
+  display: none;
+}
+
+.topbar-actions .sync-card strong {
+  display: block;
+  color: #65d6a0;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.8px;
+  line-height: 1.2;
+}
+
+.topbar-actions .sync-card span {
+  display: block;
+  color: #a99b7e;
+  font-size: 9px;
+  line-height: 1.2;
+  margin-top: 2px;
+}
+
+.topbar-actions .sync-card i {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: #39d98a;
+  box-shadow: 0 0 8px rgba(57, 217, 138, 0.55);
+  order: -1;
+  flex-shrink: 0;
+}
+
+/* OFFLINE */
+.topbar-actions .sync-card.offline {
+  background: rgba(180, 55, 55, 0.08);
+  border-color: rgba(220, 80, 80, 0.35);
+}
+
+.topbar-actions .sync-card.offline strong {
+  color: #ff8585;
+}
+
+.topbar-actions .sync-card.offline i {
+  background: #ff6666;
+  box-shadow: 0 0 8px rgba(255, 102, 102, 0.5);
+}
+
+@media (max-width: 600px) {
+  .topbar-actions {
+    gap: 7px;
+  }
+
+  .topbar-actions .sync-card {
+    padding: 6px 9px;
+  }
+}
+

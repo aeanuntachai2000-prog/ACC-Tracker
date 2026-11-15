@@ -8,7 +8,7 @@
   <meta name="description" content="ACC Tracker - Multi-company accounting work management">
   <title>ACC Tracker</title>
 
-  <link rel="manifest" href="./manifest.webmanifest">
+  <link rel="manifest" href="/manifest.webmanifest">
   <link rel="icon" href="./icons/icon-192.png">
   <link rel="apple-touch-icon" href="./icons/icon-192.png">
   <link rel="stylesheet" href="./styles.css">
@@ -127,61 +127,65 @@
 
       <div class="workspace-label">WORKSPACE</div>
 
+      
       <nav class="nav-list" id="mainNav">
+
+        <!-- MAIN MENU -->
         <button class="nav-item active" data-page="dashboard">
           <span class="nav-icon">▦</span>
-          <span>Dashboard</span>
-        </button>
-
-        <button class="nav-item" data-page="companies">
-          <span class="nav-icon">▤</span>
-          <span>Companies</span>
-          <span class="nav-count" id="companyNavCount">20</span>
+          <span>หน้าหลัก</span>
         </button>
 
         <button class="nav-item" data-page="tasks">
           <span class="nav-icon">☷</span>
-          <span>Tasks</span>
+          <span>งานทั้งหมด</span>
           <span class="nav-count" id="taskNavCount">6,720</span>
         </button>
 
         <button class="nav-item" data-page="calendar">
           <span class="nav-icon">▦</span>
-          <span>Calendar</span>
+          <span>ปฏิทิน</span>
         </button>
 
         <button class="nav-item" data-page="reports">
           <span class="nav-icon">▥</span>
-          <span>Reports</span>
+          <span>รายงาน</span>
+        </button>
+
+        <!-- MORE MENU -->
+        <div class="workspace-label">เพิ่มเติม</div>
+
+        <button class="nav-item" data-page="companies">
+          <span class="nav-icon">▤</span>
+          <span>บริษัท</span>
+          <span class="nav-count" id="companyNavCount">20</span>
+        </button>
+
+        <button class="nav-item" data-page="import">
+          <span class="nav-icon">📥</span>
+          <span>นำเข้า Excel</span>
         </button>
 
         <button class="nav-item" data-page="documents">
           <span class="nav-icon">▧</span>
-          <span>Documents</span>
+          <span>เอกสาร</span>
         </button>
 
         <button class="nav-item" data-page="notifications">
           <span class="nav-icon">♧</span>
-          <span>Notifications</span>
+          <span>การแจ้งเตือน</span>
           <span class="notification-dot"></span>
         </button>
 
         <button class="nav-item" data-page="settings">
           <span class="nav-icon">⚙</span>
-          <span>Settings</span>
+          <span>ตั้งค่า</span>
         </button>
+
       </nav>
 
-      <div class="sidebar-bottom">
 
-        <div class="sync-card" id="connectionStatus">
-          <div class="sync-icon">↻</div>
-          <div>
-            <strong id="connectionTitle">Connecting...</strong>
-            <span id="connectionDescription">Supabase database</span>
-          </div>
-          <i></i>
-        </div>
+      <div class="sidebar-bottom">
 
         <div class="profile">
           <div class="avatar">U</div>
@@ -213,13 +217,14 @@
         </div>
 
         <div class="topbar-actions">
-          <button class="icon-btn top-action" id="installButton" hidden title="ติดตั้งแอป">↓</button>
-
-          <button class="icon-btn top-action notification-action"
-                  data-page="notifications"
-                  aria-label="การแจ้งเตือน">♧<i></i></button>
-
-          <div class="top-avatar">U</div>
+          <div class="sync-card" id="connectionStatus">
+            <div class="sync-icon">↻</div>
+            <div>
+              <strong id="connectionTitle">ONLINE</strong>
+              <span id="connectionDescription">status</span>
+            </div>
+            <i></i>
+          </div>
         </div>
 
       </header>
@@ -245,22 +250,6 @@
               <div class="month-label tax" id="taxMonthDisplay">เดือนภาษี: ตุลาคม 2569</div>
             </div>
             <button class="icon-btn" id="nextMonth" aria-label="เดือนถัดไป">›</button>
-          </div>
-        </div>
-
-        <!-- WELCOME -->
-        <div class="welcome-panel">
-          <div class="welcome-copy">
-            <span class="gold-kicker">ACC TRACKER WORKSPACE</span>
-            <h2>จัดการทุกงานบัญชี<br><em>ในที่เดียว</em></h2>
-            <p>ติดตามสถานะงาน บริษัท และกำหนดส่งได้จากหน้าจอเดียว</p>
-          </div>
-
-          <div class="welcome-art" aria-hidden="true">
-            <div class="orbit orbit-one"></div>
-            <div class="orbit orbit-two"></div>
-            <div class="art-core"><span>AT</span></div>
-            <div class="art-spark">✦</div>
           </div>
         </div>
 
@@ -375,18 +364,6 @@
 
             <div class="mini-divider"></div>
 
-            <div class="deadline-line">
-              <div>
-                <span class="section-kicker">DATABASE</span>
-                <strong>สถานะการเชื่อมต่อ</strong>
-              </div>
-
-              <div class="deadline-date">
-                <b id="databaseStatus">--</b>
-                <span>STATUS</span>
-              </div>
-            </div>
-
             <p class="deadline-note" id="lastUpdated">
               กำลังตรวจสอบข้อมูล
             </p>
@@ -405,17 +382,13 @@
     </main>
   </div>
 
+  
   <!-- MOBILE NAVIGATION -->
   <nav class="mobile-nav" aria-label="เมนูด้านล่าง">
 
     <button class="mobile-nav-item active" data-page="dashboard">
       <span>▦</span>
       <small>หน้าหลัก</small>
-    </button>
-
-    <button class="mobile-nav-item" data-page="companies">
-      <span>▤</span>
-      <small>บริษัท</small>
     </button>
 
     <button class="mobile-nav-item" data-page="tasks">
@@ -428,12 +401,18 @@
       <small>ปฏิทิน</small>
     </button>
 
+    <button class="mobile-nav-item" data-page="reports">
+      <span>▥</span>
+      <small>รายงาน</small>
+    </button>
+
     <button class="mobile-nav-item" id="mobileMore">
       <span>···</span>
       <small>เพิ่มเติม</small>
     </button>
 
   </nav>
+
 
   <!-- TOAST -->
   <div class="toast" id="toast" role="status"></div>

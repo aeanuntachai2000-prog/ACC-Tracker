@@ -26,6 +26,7 @@ const pageMeta = {
   dashboard: ["Dashboard", "ภาพรวมการจัดการงานบัญชีของทุกบริษัท", "▦"],
   companies: ["Companies", "จัดการข้อมูลและภาพรวมของบริษัททั้งหมด", "▤"],
   tasks: ["Tasks", "ติดตามและจัดการงานบัญชีทุกบริษัท", "☷"],
+  import: ["Excel Import", "ตรวจสอบไฟล์ Excel ก่อนนำเข้าระบบ", "file-spreadsheet"],
   calendar: ["Calendar", "ปฏิทินกำหนดส่งและตารางงาน", "▦"],
   reports: ["Reports", "รายงานและวิเคราะห์ผลการดำเนินงาน", "▥"],
   documents: ["Documents", "จัดเก็บและค้นหาเอกสารประกอบงาน", "▧"],
@@ -39,11 +40,9 @@ const scrim = document.getElementById("scrim");
 const toast = document.getElementById("toast");
 
 let toastTimer;
-let currentPage = "dashboard";
-let companies = [];
-let tasks = [];
-let currentUser = null;
-let isLoading = false;
+let isLoading;
+let taskTypes = [];
+let taskStatuses = [];
 
 let currentMonthIndex = new Date().getMonth();
 let currentBuddhistYear = new Date().getFullYear() + 543;
@@ -495,6 +494,36 @@ async function loadTasks() {
   return tasks;
 }
 
+/* 10. LOAD TASK TYPES FROM SUPABASE */
+async function loadTaskTypes() {
+  const { data, error } = await sbClient
+    .from("task_types")
+    .select("*")
+    .order("sort_order", { ascending: true });
+
+  if (error) throw error;
+
+  // Store with 'name' column from Supabase task_types table
+  taskTypes = data || [];
+  return taskTypes;
+}
+
+/* 11. LOAD TASK STATUSES FROM SUPABASE */
+async function loadTaskStatuses() {
+  const { data, error } = await sbClient
+    .from("task_statuses")
+    .select("*")
+    .order("sort_order", { ascending: true });
+
+  if (error) throw error;
+
+  // Store with 'name' column from Supabase task_statuses table
+  taskStatuses = data || [];
+  return taskStatuses;
+}
+
+/* 9. UPDATE NAVIGATION COUNTS */
+
 
 /* 9. UPDATE NAVIGATION COUNTS */
 
@@ -559,11 +588,31 @@ function renderDashboardData() {
 
   const totalCompanies = companies.length;
   const totalTasks = filteredTasks.length;
-  const completed = filteredTasks.filter(t => t.status === "เสร็จแล้ว").length;
-  const pending = filteredTasks.filter(t =>
-    t.status === "ยังไม่เริ่ม" || t.status === "กำลังดำเนินการ"
-  ).length;
-  const percent = totalTasks ? (completed / totalTasks * 100) : 0;
+
+  // Count by status using fetched taskStatuses
+  const statusMap = {};
+  taskStatuses.forEach(s => { statusMap[s.name] = 0; });
+  filteredTasks.forEach(t => {
+    if (statusMap[t.status] !== undefined) {
+      statusMap[t.status]++;
+    }
+  });
+
+  const completed = statusMap["เสร็จแล้ว"] || 0;
+  const pending = (statusMap["ยังไม่เริ่ม"] || 0) +
+                  (statusMap["กำลังดำเนินการ"] || 0);
+  const irrelevant = statusMap["ไม่เกี่ยวข้อง"] || 0;
+
+  // งานที่ต้องดำเนินการจริง
+  const requiredTasks = Math.max(totalTasks - irrelevant, 0);
+
+  // งานที่เหลือหลังหักงานที่เสร็จแล้ว
+  const remainingTasks = Math.max(requiredTasks - completed, 0);
+
+  // เปอร์เซ็นต์ความคืบหน้า
+  const percent = requiredTasks > 0
+    ? (completed / requiredTasks) * 100
+    : 0;
 
   setText("statCompanies", formatNumber(totalCompanies));
   setText("statTasks", formatNumber(totalTasks));
@@ -572,68 +621,227 @@ function renderDashboardData() {
   setText("completedPercent", percent.toFixed(1) + "%");
   setText("progressPercent", percent.toFixed(1) + "%");
   setText("progressDone", formatNumber(completed));
-  setText("progressPending", formatNumber(totalTasks - completed));
+  setText("progressPending", formatNumber(remainingTasks));
 
   const progressFill = document.getElementById("progressFill");
   if (progressFill) {
     progressFill.style.width = percent + "%";
   }
 
-  const taskGroups = {
-    "ภาษีหัก ณ ที่จ่าย": [],
-    "VAT": [],
-    "งานบัญชีประจำเดือน": []
-  };
 
-  filteredTasks.forEach(t => {
-    if (Object.prototype.hasOwnProperty.call(taskGroups, t.task_type)) {
+  const taskViewMode = window.accDashboardTaskViewMode || "month";
+
+  // กำหนดประเภทงานที่แสดงในแต่ละมุมมอง
+  const monthlyTaskTypes = [
+    "ภ.ง.ด.1",
+    "ภ.ง.ด.3",
+    "ภ.ง.ด.53",
+    "ภ.พ.30",
+    "ประกันสังคม"
+  ];
+
+  const yearlyTaskTypes = [
+    "ภ.ง.ด.50"
+  ];
+
+  const visibleTaskTypes = taskViewMode === "year"
+    ? yearlyTaskTypes
+    : monthlyTaskTypes;
+
+  // เลือกข้อมูลงานตามปี เดือน และประเภทงาน
+  const taskViewTasks = tasks.filter(t => {
+    const sameYear =
+      String(t.buddhist_year) === String(taxYear);
+
+    const sameMonth =
+      String(t.month) === String(taxMonth);
+
+    const allowedType =
+      visibleTaskTypes.includes(t.task_type);
+
+    if (taskViewMode === "year") {
+      return sameYear && allowedType;
+    }
+
+    return sameYear && sameMonth && allowedType;
+  });
+
+  // จัดกลุ่มงานตามประเภท
+  const taskGroups = {};
+
+  visibleTaskTypes.forEach(type => {
+    taskGroups[type] = [];
+  });
+
+  taskViewTasks.forEach(t => {
+    if (taskGroups[t.task_type]) {
       taskGroups[t.task_type].push(t);
     }
   });
 
   const list = document.getElementById("dashboardTaskList");
+  
   if (list) {
     let html = "";
 
+    
+    // ปุ่มเลือกมุมมองรายเดือน / รายปี
+    html = `
+      <div class="task-view-controls">
+        <button type="button"
+          class="task-view-button ${taskViewMode === "month" ? "active" : ""}"
+          data-task-view="month">
+          รายเดือน
+        </button>
+        <button type="button"
+          class="task-view-button ${taskViewMode === "year" ? "active" : ""}"
+          data-task-view="year">
+          รายปี
+        </button>
+      </div>
+    `;
+
     Object.entries(taskGroups).forEach(([taskType, typeTasks]) => {
+      const companyGroups = {};
+
+      typeTasks.forEach(task => {
+        const companyId = String(task.company_id);
+
+        if (!companyGroups[companyId]) {
+          companyGroups[companyId] = {
+            name: getTaskCompanyName(task),
+            code: task.company_code || "",
+            tasks: []
+          };
+        }
+
+        companyGroups[companyId].tasks.push(task);
+      });
+
+      // จำนวนบริษัทที่มีงานและไม่ใช่สถานะไม่เกี่ยวข้อง
+      const relevantCompanies = Object.values(companyGroups).filter(company =>
+        company.tasks.some(task => task.status !== "ไม่เกี่ยวข้อง")
+      );
+
+      // จำนวนบริษัทที่ทำงานเสร็จแล้ว
+      const typeCompleted = relevantCompanies.filter(company =>
+        company.tasks.every(task => task.status === "เสร็จแล้ว" || task.status === "ไม่เกี่ยวข้อง")
+      ).length;
+
+      // จำนวนบริษัทที่ต้องทำงานจริง
+      const totalTypeCompanies = relevantCompanies.length;
+
+      // คำนวณความคืบหน้า
+      const typePercent = totalTypeCompanies
+        ? (typeCompleted / totalTypeCompanies) * 100
+        : 0;
+
       html += `
-        <div class="task-group">
-          <div class="task-group-header">
-            <span class="task-group-type">${escapeHTML(taskType)}</span>
-            <span class="task-group-count">${typeTasks.length}</span>
-          </div>
-          <div class="task-group-items">
-            ${typeTasks.map(task => `
-              <div class="task-row">
-                <div class="task-symbol doc">☷</div>
-                <div class="task-info">
-                  <strong>${escapeHTML(getTaskCompanyName(task))}</strong>
-                  <div class="muted small">${escapeHTML(task.company_code || "")}</div>
-                </div>
-                <div class="task-meta">
-                  <span class="status-pill">${escapeHTML(task.status)}</span>
-                  <span class="due-date">${getDueDateText(taskType, taxYear, taxMonth)}</span>
-                </div>
+        <details class="task-group">
+          <summary class="task-group-header">
+            <div class="task-group-heading">
+              <span class="task-group-type">${escapeHTML(taskType)}</span>
+              <span class="task-group-count">${Object.keys(companyGroups).length}</span>
+            </div>
+
+            <div class="task-group-progress">
+              <div class="task-group-progress-info">
+                <span>เสร็จแล้ว ${typeCompleted}/${totalTypeCompanies} บริษัท</span>
+                <span>${typePercent.toFixed(0)}%</span>
               </div>
-            `).join("")}
+              <div class="task-group-progress-track">
+                <div class="task-group-progress-fill"
+                  style="width: ${typePercent}%"></div>
+              </div>
+            </div>
+
+            <span class="task-group-chevron" aria-hidden="true">⌄</span>
+          </summary>
+
+          <div class="task-group-items">
+            ${Object.values(companyGroups).map(company => {
+              const companyCompleted = company.tasks.filter(
+                task => task.status === "เสร็จแล้ว"
+              ).length;
+
+              if (taskViewMode === "month") {
+                const task = company.tasks[0];
+
+                return `
+                  <div class="task-row">
+                    <div class="task-symbol doc">☷</div>
+                    <div class="task-info">
+                      <strong>${escapeHTML(company.name)}</strong>
+                      <div class="muted small">${escapeHTML(company.code)}</div>
+                    </div>
+                    <div class="task-meta">
+                      <span class="status-pill">${escapeHTML(task.status)}</span>
+                      <span class="due-date">${getDueDateText(taskType, taxYear, taxMonth)}</span>
+                    </div>
+                  </div>
+                `;
+              }
+
+              return `
+                <details class="task-year-company">
+                  <summary>
+                    <div class="task-info">
+                      <strong>${escapeHTML(company.name)}</strong>
+                      <div class="muted small">${escapeHTML(company.code)}</div>
+                    </div>
+                    <span class="task-year-count">
+                      เสร็จ ${companyCompleted}/${company.tasks.length}
+                    </span>
+                  </summary>
+
+                  <div class="task-year-months">
+                    ${company.tasks.slice()
+                      .sort((a, b) => Number(a.month) - Number(b.month))
+                      .map(task => `
+                        <div class="task-row">
+                          <div class="task-info">
+                            <strong>${THAI_MONTHS[Number(task.month) - 1] || ""}</strong>
+                            <div class="muted small">${task.buddhist_year}</div>
+                          </div>
+                          <div class="task-meta">
+                            <span class="status-pill">${escapeHTML(task.status)}</span>
+                          </div>
+                        </div>
+                      `).join("")}
+                  </div>
+                </details>
+              `;
+            }).join("")}
           </div>
-        </div>
+        </details>
       `;
     });
 
-    if (totalTasks === 0) {
-      html = `
+    if (taskViewTasks.length === 0) {
+      html += `
         <div class="task-row">
           <div class="task-info">
-            <strong>ไม่พบงานในเดือนนี้</strong>
-            <span>เดือนภาษี ${THAI_MONTHS[tax.month - 1]} ${taxYear}</span>
+            <strong>ไม่พบงานในช่วงเวลานี้</strong>
+            <span>
+              ${taskViewMode === "year"
+                ? "ปี " + taxYear
+                : "เดือนภาษี " + THAI_MONTHS[taxMonth - 1] + " " + taxYear}
+            </span>
           </div>
         </div>
       `;
     }
 
     list.innerHTML = html;
+
+    list.querySelectorAll("[data-task-view]").forEach(button => {
+      button.addEventListener("click", () => {
+        window.accDashboardTaskViewMode = button.dataset.taskView;
+        renderDashboardData();
+      });
+    });
   }
+
 
   // รายงานบริษัทที่มีงานในเดือนภาษีนี้
   const companyMap = {};
@@ -1317,6 +1525,892 @@ function renderDashboard() {
   initMonthControl();
 }
 
+// ==========================================
+// ACC TRACKER - EXCEL IMPORT PREVIEW
+// READ ONLY: ยังไม่เขียนข้อมูลลง Supabase
+// ==========================================
+
+let accImportPreviewResult = null;
+let accImportChangeFilter = "all";
+let accImportApprovedRows = new Set();
+let accImportNewApprovedRows = new Set();
+
+function accImportValue(value) {
+  return String(value ?? "").trim();
+}
+
+function accImportNumber(value) {
+  if (value === "" || value === null || value === undefined) return NaN;
+  return Number(value);
+}
+
+function accImportOptionNames(items) {
+  return new Set((items || [])
+    .filter(item => item && item.is_active !== false)
+    .map(item => accImportValue(
+      typeof item === "string" ? item : item.name
+    ))
+    .filter(Boolean));
+}
+
+function accImportDate(value) {
+  if (value === "" || value === null || value === undefined) return "";
+
+  if (value instanceof Date && !Number.isNaN(value.getTime())) {
+    return value.toISOString();
+  }
+
+  if (typeof value === "number" && window.XLSX) {
+    const parsed = XLSX.SSF.parse_date_code(value);
+    if (parsed) {
+      const date = new Date(Date.UTC(
+        parsed.y, parsed.m - 1, parsed.d,
+        parsed.H || 0, parsed.M || 0, Math.floor(parsed.S || 0)
+      ));
+      return date.toISOString();
+    }
+  }
+
+  const text = accImportValue(value);
+  const thaiDate = text.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})$/);
+
+  if (thaiDate) {
+    let year = Number(thaiDate[3]);
+    if (year > 2400) year -= 543;
+
+    const date = new Date(Date.UTC(
+      year, Number(thaiDate[2]) - 1, Number(thaiDate[1])
+    ));
+
+    return Number.isNaN(date.getTime()) ? "" : date.toISOString();
+  }
+
+  const date = new Date(text);
+  return Number.isNaN(date.getTime()) ? "" : date.toISOString();
+}
+
+function accImportKey(row) {
+  return [
+    row.buddhist_year,
+    row.month,
+    row.company_id,
+    row.task_type
+  ].join("|");
+}
+
+function accImportNormalize(row) {
+  return {
+    buddhist_year: Number(row.buddhist_year),
+    month: Number(row.month),
+    company_id: accImportValue(row.company_id),
+    company_code: accImportValue(row.company_code),
+    company_name: accImportValue(row.company_name),
+    task_type: accImportValue(row.task_type),
+    status: accImportValue(row.status),
+    source_updated_at: accImportDate(row.source_updated_at),
+    note: accImportValue(row.note)
+  };
+}
+
+function accImportCompare(excelRow, dbRow) {
+  const fields = [
+    "buddhist_year",
+    "month",
+    "company_id",
+    "company_code",
+    "company_name",
+    "task_type",
+    "status",
+    "source_updated_at",
+    "note"
+  ];
+
+  return fields
+    .map(field => {
+      const newValue = excelRow[field] ?? "";
+      const oldValue = field === "source_updated_at"
+        ? accImportDate(dbRow[field])
+        : (dbRow[field] ?? "");
+
+      if (String(newValue) === String(oldValue)) {
+        return null;
+      }
+
+      return {
+        field,
+        oldValue,
+        newValue
+      };
+    })
+    .filter(Boolean);
+}
+
+function accSetImportChangeFilter(value) {
+  accImportChangeFilter = value || "all";
+  accRenderExcelPreviewResult();
+}
+
+function renderExcelImportPage() {
+  pageContent.innerHTML = `
+    <section class="import-page">
+      <div class="panel import-upload-panel">
+        <div class="panel-header">
+          <div>
+            <h2>Excel Import Preview</h2>
+            <p>ตรวจสอบข้อมูล Excel เทียบกับฐานข้อมูล ACC Tracker</p>
+          </div>
+        </div>
+
+        <div class="import-file-area">
+          <label for="accImportFile">เลือกไฟล์ Excel</label>
+          <input id="accImportFile" type="file" accept=".xlsx,.xls,.xlsm,.xlsb">
+          <p class="muted">รองรับชีตชื่อ “รายการงาน” และจะยังไม่มีการบันทึกข้อมูล</p>
+        </div>
+
+        <div id="accImportResult">
+          <p class="muted">เลือกไฟล์ Excel เพื่อเริ่มตรวจสอบ</p>
+        </div>
+      </div>
+    </section>
+  `;
+
+  const fileInput = document.getElementById("accImportFile");
+  fileInput.addEventListener("change", accHandleExcelPreview);
+}
+
+async function accHandleExcelPreview(event) {
+  const file = event.target.files?.[0];
+  // ล้างรายการอนุมัติจากไฟล์ก่อนหน้า
+accImportApprovedRows.clear();
+accImportNewApprovedRows.clear();
+  const resultBox = document.getElementById("accImportResult");
+
+  if (!file || !resultBox) return;
+
+  if (!window.XLSX) {
+    resultBox.innerHTML = `<p class="import-error">ไม่พบไลบรารี XLSX กรุณาตรวจสอบการโหลด SheetJS</p>`;
+    return;
+  }
+
+  resultBox.innerHTML = `<p class="muted">กำลังอ่านและตรวจสอบไฟล์...</p>`;
+
+  try {
+    const buffer = await file.arrayBuffer();
+    const workbook = XLSX.read(buffer, {
+      type: "array",
+      cellDates: true
+    });
+
+    const sheet = workbook.Sheets["รายการงาน"];
+
+    if (!sheet) {
+      throw new Error('ไม่พบชีตชื่อ "รายการงาน" ในไฟล์ Excel');
+    }
+
+    const rows = XLSX.utils.sheet_to_json(sheet, {
+      header: 1,
+      raw: true,
+      defval: ""
+    }).filter(row =>
+      row.some(value => String(value ?? "").trim() !== "")
+    );
+
+    if (rows.length < 2) {
+      throw new Error("ไม่พบแถวข้อมูลในไฟล์ Excel");
+    }
+
+    const expectedHeaders = [
+      "ปี พ.ศ.", "เดือน", "CompanyID", "Company Code",
+      "บริษัท", "ประเภทงาน", "สถานะ", "อัปเดตเมื่อ", "หมายเหตุ"
+    ];
+
+    const headers = rows[0].map(accImportValue);
+    const missingHeaders = expectedHeaders.filter(
+      header => !headers.includes(header)
+    );
+
+    if (missingHeaders.length) {
+      throw new Error("หัวตารางไม่ครบ: " + missingHeaders.join(", "));
+    }
+
+    const column = Object.fromEntries(
+      expectedHeaders.map(header => [header, headers.indexOf(header)])
+    );
+
+    const excelRows = rows.slice(1).map((cells, index) => ({
+      excel_row: index + 2,
+      buddhist_year: cells[column["ปี พ.ศ."]],
+      month: cells[column["เดือน"]],
+      company_id: cells[column["CompanyID"]],
+      company_code: cells[column["Company Code"]],
+      company_name: cells[column["บริษัท"]],
+      task_type: cells[column["ประเภทงาน"]],
+      status: cells[column["สถานะ"]],
+      source_updated_at: cells[column["อัปเดตเมื่อ"]],
+      note: cells[column["หมายเหตุ"]]
+    })).filter(row => Object.values(row).some(value => accImportValue(value)));
+
+    const companyIds = new Set((companies || []).map(
+      company => accImportValue(company.company_id)
+    ));
+    const validTaskTypes = accImportOptionNames(taskTypes);
+    const validStatuses = accImportOptionNames(taskStatuses);
+
+    const normalizedRows = excelRows.map(row => ({
+      ...row,
+      ...accImportNormalize(row)
+    }));
+
+    const keyCounts = new Map();
+    normalizedRows.forEach(row => {
+      const key = accImportKey(row);
+      keyCounts.set(key, (keyCounts.get(key) || 0) + 1);
+    });
+
+    const dbByKey = new Map(
+      (tasks || []).map(task => [accImportKey(task), task])
+    );
+
+    const groups = {
+      invalid: [],
+      new: [],
+      unchanged: [],
+      changed: []
+    };
+
+    normalizedRows.forEach(row => {
+      const reasons = [];
+      const key = accImportKey(row);
+
+      if (!Number.isInteger(row.buddhist_year) ||
+          row.buddhist_year < 2400 || row.buddhist_year > 2700) {
+        reasons.push("ปี พ.ศ. ไม่ถูกต้อง");
+      }
+
+      if (!Number.isInteger(row.month) ||
+          row.month < 1 || row.month > 12) {
+        reasons.push("เดือนไม่ถูกต้อง");
+      }
+
+      if (!row.company_id || !companyIds.has(row.company_id)) {
+        reasons.push("ไม่พบ CompanyID ในระบบ");
+      }
+
+      if (!row.task_type || !validTaskTypes.has(row.task_type)) {
+        reasons.push("ไม่พบประเภทงานหรือประเภทงานไม่ได้เปิดใช้งาน");
+      }
+
+      if (!row.status || !validStatuses.has(row.status)) {
+        reasons.push("ไม่พบสถานะหรือสถานะไม่ได้เปิดใช้งาน");
+      }
+
+      if ((keyCounts.get(key) || 0) > 1) {
+        reasons.push("พบ Composite Key ซ้ำในไฟล์ Excel");
+      }
+
+      if (reasons.length) {
+        groups.invalid.push({ ...row, reasons });
+        return;
+      }
+
+      const existing = dbByKey.get(key);
+
+      if (!existing) {
+        groups.new.push(row);
+        return;
+      }
+
+      const differences = accImportCompare(row, existing);
+
+      if (differences.length) {
+        groups.changed.push({
+          ...row,
+
+          // รหัสรายการเดิมใน Supabase
+          task_id: existing.task_id,
+
+          // ค่าเดิมจาก Supabase เฉพาะฟิลด์ที่เปลี่ยน
+          old_values: Object.fromEntries(
+            differences.map(diff => [
+              diff.field,
+              diff.oldValue
+            ])
+          ),
+
+          // ค่าใหม่จาก Excel เฉพาะฟิลด์ที่เปลี่ยน
+          new_values: Object.fromEntries(
+            differences.map(diff => [
+              diff.field,
+              diff.newValue
+            ])
+          ),
+
+          differences
+        });
+      } else {
+        groups.unchanged.push(row);
+      }
+    });
+
+    accImportApprovedRows.clear();
+    accImportPreviewResult = {
+      fileName: file.name,
+      total: normalizedRows.length,
+      groups
+    };
+
+    accRenderExcelPreviewResult();
+  } catch (error) {
+    resultBox.innerHTML = `
+      <p class="import-error">${escapeHTML(error.message || "เกิดข้อผิดพลาดในการอ่านไฟล์")}</p>
+    `;
+  }
+}
+
+
+function accSetImportRowApproval(excelRow, checked) {
+  const rowNumber = Number(excelRow);
+
+  if (!Number.isInteger(rowNumber)) return;
+
+  if (checked) {
+    accImportApprovedRows.add(rowNumber);
+  } else {
+    accImportApprovedRows.delete(rowNumber);
+  }
+
+  accRenderExcelPreviewResult();
+}
+
+
+function accSetImportNewRowApproval(excelRow, checked) {
+  const rowNumber = Number(excelRow);
+  if (!Number.isInteger(rowNumber)) return;
+
+  if (checked) {
+    accImportNewApprovedRows.add(rowNumber);
+  } else {
+    accImportNewApprovedRows.delete(rowNumber);
+  }
+
+  accRenderExcelPreviewResult();
+}
+
+function accSetImportNewBulkApproval(checked) {
+  if (!accImportPreviewResult) return;
+
+  const rows = accImportPreviewResult.groups.new;
+
+  rows.forEach(row => {
+    if (checked) {
+      accImportNewApprovedRows.add(Number(row.excel_row));
+    } else {
+      accImportNewApprovedRows.delete(Number(row.excel_row));
+    }
+  });
+
+  accRenderExcelPreviewResult();
+}
+
+
+function accSetImportBulkApproval(checked) {
+  if (!accImportPreviewResult) return;
+
+  const { groups } = accImportPreviewResult;
+
+  const rows = groups.changed.filter(row =>
+    accImportChangeFilter === "all" ||
+    (row.differences || []).some(
+      diff => diff.field === accImportChangeFilter
+    )
+  );
+
+  rows.forEach(row => {
+    if (checked) {
+      accImportApprovedRows.add(Number(row.excel_row));
+    } else {
+      accImportApprovedRows.delete(Number(row.excel_row));
+    }
+  });
+
+  accRenderExcelPreviewResult();
+}
+
+
+
+function accRenderExcelPreviewResult() {
+  const box = document.getElementById("accImportResult");
+  if (!box || !accImportPreviewResult) return;
+
+  const { total, groups, fileName } = accImportPreviewResult;
+
+  const changeFilterOptions = [
+    ["all", "ทุกฟิลด์ที่เปลี่ยนแปลง"],
+    ["status", "สถานะ"],
+    ["company_code", "Company Code"],
+    ["company_name", "ชื่อบริษัท"],
+    ["company_id", "CompanyID"],
+    ["task_type", "ประเภทงาน"],
+    ["note", "หมายเหตุ"],
+    ["source_updated_at", "วันที่อัปเดต"],
+    ["buddhist_year", "ปี พ.ศ."],
+    ["month", "เดือน"]
+  ];
+
+  const changedItems = groups.changed.filter(row =>
+    accImportChangeFilter === "all" ||
+    (row.differences || []).some(
+      diff => diff.field === accImportChangeFilter
+    )
+  );
+
+  const approvedCount = groups.changed.filter(row =>
+    accImportApprovedRows.has(Number(row.excel_row))
+  ).length;
+
+  const approvedItems = groups.changed.filter(row =>
+    accImportApprovedRows.has(Number(row.excel_row))
+  );
+
+  const approvedNewItems = groups.new.filter(row =>
+    accImportNewApprovedRows.has(Number(row.excel_row))
+  );
+
+  const filteredApprovedCount = changedItems.filter(row =>
+    accImportApprovedRows.has(Number(row.excel_row))
+  ).length;
+
+  const allFilteredApproved =
+    changedItems.length > 0 &&
+    changedItems.every(row =>
+      accImportApprovedRows.has(Number(row.excel_row))
+    );
+
+  const fieldLabels = {
+    buddhist_year: "ปี พ.ศ.",
+    month: "เดือน",
+    company_id: "CompanyID",
+    company_code: "Company Code",
+    company_name: "ชื่อบริษัท",
+    task_type: "ประเภทงาน",
+    status: "สถานะ",
+    source_updated_at: "อัปเดตเมื่อ",
+    note: "หมายเหตุ"
+  };
+
+  const summary = [
+    ["ข้อมูลใหม่", groups.new.length],
+    ["ข้อมูลเหมือนเดิม", groups.unchanged.length],
+    ["ข้อมูลเปลี่ยนแปลง", groups.changed.length],
+    ["ข้อมูลผิดปกติ", groups.invalid.length]
+  ];
+
+  const details = [
+    ["ข้อมูลใหม่", groups.new],
+    ["ข้อมูลเปลี่ยนแปลง", changedItems],
+    ["ข้อมูลผิดปกติ", groups.invalid]
+  ];
+
+
+  const statusChangedCount = groups.changed.filter(row =>
+    (row.differences || []).some(diff => diff.field === "status")
+  ).length;
+
+  const otherChangedCount = groups.changed.filter(row =>
+    (row.differences || []).some(diff => diff.field !== "status")
+  ).length;
+
+  const importPlan = [
+    {
+      label: "รายการใหม่",
+      count: groups.new.length,
+      action: "เตรียมเพิ่มข้อมูลใหม่",
+      detail: "จะเพิ่มด้วย Composite Key และไม่เขียนทับข้อมูลเดิม"
+    },
+    {
+      label: "รายการเหมือนเดิม",
+      count: groups.unchanged.length,
+      action: "ข้ามรายการ",
+      detail: "ไม่มีความจำเป็นต้องบันทึกซ้ำ"
+    },
+    {
+      label: "รายการเปลี่ยนแปลง",
+      count: groups.changed.length,
+      action: "รออนุมัติ",
+      detail: "ต้องเลือกและตรวจสอบก่อนเปลี่ยนข้อมูล"
+    },
+    {
+      label: "รายการผิดปกติ",
+      count: groups.invalid.length,
+      action: "ระงับการนำเข้า",
+      detail: "ต้องแก้ไขข้อมูลก่อน"
+    }
+  ];
+
+
+  box.innerHTML = `
+    <div class="import-summary">
+      <p>ไฟล์: <strong>${escapeHTML(fileName)}</strong></p>
+      <p>จำนวนแถวข้อมูลทั้งหมด:
+        <strong>${formatNumber(total)}</strong>
+      </p>
+
+      <div class="import-summary-grid">
+        ${summary.map(([label, count]) => `
+          <div class="import-summary-card">
+            <span>${label}</span>
+            <strong>${formatNumber(count)}</strong>
+          </div>
+        `).join("")}
+      </div>
+    </div>
+
+    ${details.map(([label, items]) => `
+      <div class="import-detail-group">
+        <h3>${label} (${formatNumber(items.length)})</h3>
+        
+        ${label === "ข้อมูลเปลี่ยนแปลง" ? `
+          <div class="import-change-filter">
+            <label for="accImportChangeFilter">
+              กรองรายการตามฟิลด์ที่เปลี่ยน
+            </label>
+            <select
+              id="accImportChangeFilter"
+              onchange="accSetImportChangeFilter(this.value)"
+            >
+              ${changeFilterOptions.map(([value, text]) => `
+                <option
+                  value="${value}"
+                  ${accImportChangeFilter === value ? "selected" : ""}
+                >${text}</option>
+              `).join("")}
+            </select>
+            
+            <span class="muted">
+              แสดง ${formatNumber(items.length)}
+              จาก ${formatNumber(groups.changed.length)} รายการ
+            </span>
+
+            <div class="import-selection-actions">
+              <button
+                type="button"
+                class="btn btn-secondary"
+                onclick="accSetImportBulkApproval(true)"
+              >
+                เลือกทั้งหมดตามตัวกรอง
+              </button>
+
+              <button
+                type="button"
+                class="btn btn-secondary"
+                onclick="accSetImportBulkApproval(false)"
+              >
+                ยกเลิกทั้งหมดตามตัวกรอง
+              </button>
+            </div>
+
+            <p class="import-selection-count">
+              เลือกแล้ว ${formatNumber(filteredApprovedCount)}
+              จาก ${formatNumber(items.length)} รายการที่แสดง
+              <br>
+              รวมเลือกแล้ว ${formatNumber(approvedCount)}
+              จาก ${formatNumber(groups.changed.length)} รายการ
+            </p>
+
+          </div>
+        ` : ""}
+
+        ${label === "ข้อมูลใหม่" ? `
+          <div class="import-selection-actions">
+            <button
+              type="button"
+              class="btn btn-secondary"
+              onclick="accSetImportNewBulkApproval(true)"
+            >
+              เลือกข้อมูลใหม่ทั้งหมด
+            </button>
+
+            <button
+              type="button"
+              class="btn btn-secondary"
+              onclick="accSetImportNewBulkApproval(false)"
+            >
+              ยกเลิกข้อมูลใหม่ทั้งหมด
+            </button>
+          </div>
+
+          <p class="import-selection-count">
+            เลือกแล้ว ${formatNumber(approvedNewItems.length)}
+            จาก ${formatNumber(groups.new.length)} รายการ
+          </p>
+        ` : ""}
+
+        ${items.length ? `
+          <div class="table-wrap">
+            <table class="data-table">
+              <thead>
+                <tr>
+                  ${["ข้อมูลเปลี่ยนแปลง", "ข้อมูลใหม่"].includes(label) ? `
+                    <th>
+                      <input
+                        type="checkbox"
+                        aria-label="เลือกทั้งหมด"
+                        ${
+                          label === "ข้อมูลเปลี่ยนแปลง"
+                            ? (allFilteredApproved ? "checked" : "")
+                            : (
+                                items.length > 0 &&
+                                items.every(row =>
+                                  accImportNewApprovedRows.has(Number(row.excel_row))
+                                )
+                                  ? "checked"
+                                  : ""
+                              )
+                        }
+                        onchange="${
+                          label === "ข้อมูลเปลี่ยนแปลง"
+                            ? "accSetImportBulkApproval(this.checked)"
+                            : "accSetImportNewBulkApproval(this.checked)"
+                        }"
+                      >
+                    </th>
+                  ` : ""}
+                  <th>แถว Excel</th>
+                  <th>ปี</th>
+                  <th>เดือน</th>
+                  <th>บริษัท</th>
+                  <th>ประเภทงาน</th>
+                  <th>สถานะ</th>
+                  <th>รายละเอียด</th>
+                </tr>
+              </thead>
+
+              
+              <tbody>
+                ${items.slice(0, 100).map(row => `
+                  <tr>
+                    ${label === "ข้อมูลเปลี่ยนแปลง" ? `
+                      <td>
+                        <input
+                          type="checkbox"
+                          aria-label="เลือกแถว Excel ${row.excel_row}"
+                          ${
+                            label === "ข้อมูลเปลี่ยนแปลง"
+                              ? (accImportApprovedRows.has(Number(row.excel_row)) ? "checked" : "")
+                              : (accImportNewApprovedRows.has(Number(row.excel_row)) ? "checked" : "")
+                          }
+                          onchange="${
+                            label === "ข้อมูลเปลี่ยนแปลง"
+                              ? `accSetImportRowApproval(${Number(row.excel_row)}, this.checked)`
+                              : `accSetImportNewRowApproval(${Number(row.excel_row)}, this.checked)`
+                          }"
+                        >
+                      </td>
+                    ` : ""}
+                    <td>${row.excel_row}</td>
+                    <td>${escapeHTML(row.buddhist_year)}</td>
+                    <td>${escapeHTML(row.month)}</td>
+                    <td>${escapeHTML(row.company_name)}</td>
+                    <td>${escapeHTML(row.task_type)}</td>
+                    <td>${escapeHTML(row.status)}</td>
+                    <td>
+
+                      ${
+                        row.differences?.length
+                          ? `
+                            <details>
+                              <summary>
+                                ดูความแตกต่าง (${row.differences.length})
+                              </summary>
+                              <table class="data-table">
+                                <thead>
+                                  <tr>
+                                    <th>ฟิลด์</th>
+                                    <th>ค่าเดิม (Supabase)</th>
+                                    <th>ค่าใหม่ (Excel)</th>
+                                  </tr>
+                                </thead>
+                                <tbody>
+                                  ${row.differences.map(diff => `
+                                    <tr>
+                                      <td>${fieldLabels[diff.field] || escapeHTML(diff.field)}</td>
+                                      <td>${escapeHTML(String(diff.oldValue ?? "") || "(ว่าง)")}</td>
+                                      <td>${escapeHTML(String(diff.newValue ?? "") || "(ว่าง)")}</td>
+                                    </tr>
+                                  `).join("")}
+                                </tbody>
+                              </table>
+                            </details>
+                          `
+                          : escapeHTML(
+                              (row.reasons || []).join(", ") || "-"
+                            )
+                      }
+                    </td>
+                  </tr>
+                `).join("")}
+              </tbody>
+            </table>
+          </div>
+
+          ${items.length > 100
+            ? `<p class="muted">
+                แสดง 100 รายการแรกจากทั้งหมด
+                ${formatNumber(items.length)} รายการ
+              </p>`
+            : ""}
+        ` : `<p class="muted">ไม่มีรายการ</p>`}
+      </div>
+    `).join("")}
+
+    <div class="import-approval-preview">
+      <h3>ตรวจสอบรายการที่เลือก (${formatNumber(approvedItems.length)})</h3>
+
+      ${
+        approvedItems.length
+          ? approvedItems.map(row => `
+            <div class="import-approval-item">
+              <h4>
+                Excel แถว ${row.excel_row} -
+                ${escapeHTML(row.company_name)}
+              </h4>
+
+              <p class="muted">
+                ปี ${escapeHTML(row.buddhist_year)}
+                เดือน ${escapeHTML(row.month)}
+                | ${escapeHTML(row.task_type)}
+              </p>
+
+              <table class="data-table">
+                <thead>
+                  <tr>
+                    <th>ฟิลด์</th>
+                    <th>ค่าเดิม (Supabase)</th>
+                    <th>ค่าใหม่ (Excel)</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  ${(row.differences || []).map(diff => `
+                    <tr>
+                      <td>${fieldLabels[diff.field] || escapeHTML(diff.field)}</td>
+                      <td>${escapeHTML(String(diff.oldValue ?? "") || "(ว่าง)")}</td>
+                      <td>${escapeHTML(String(diff.newValue ?? "") || "(ว่าง)")}</td>
+                    </tr>
+                  `).join("")}
+                </tbody>
+              </table>
+            </div>
+          `).join("")
+          : `<p class="muted">ยังไม่มีรายการที่เลือก กรุณาติ๊กเลือกรายการจากตารางด้านบน</p>`
+      }
+
+      <div class="import-approval-actions">
+        <button
+          type="button"
+          class="btn btn-primary"
+          id="accImportApplyButton"
+          ${approvedItems.length === 0 ? "disabled" : ""}
+          onclick="accApplyApprovedExcelChanges()"
+        >
+          อนุมัติและบันทึก ${formatNumber(approvedItems.length)} รายการ
+        </button>
+
+        <p id="accImportSaveStatus" class="muted"></p>
+      </div>
+
+      <p class="import-readonly-note">
+        รายการนี้เป็นเพียงตัวอย่างการเปลี่ยนแปลงที่เลือกไว้
+        ยังไม่มีการบันทึกข้อมูลลง Supabase
+      </p>
+    </div>
+
+    <div class="import-approval-preview">
+      <h3>ตรวจสอบข้อมูลใหม่ที่เลือก (${formatNumber(approvedNewItems.length)})</h3>
+
+      ${
+        approvedNewItems.length
+          ? approvedNewItems.map(row => `
+            <div class="import-approval-item">
+              <h4>
+                Excel แถว ${row.excel_row} -
+                ${escapeHTML(row.company_name)}
+              </h4>
+              <p class="muted">
+                ปี ${escapeHTML(row.buddhist_year)}
+                เดือน ${escapeHTML(row.month)}
+                | ${escapeHTML(row.task_type)}
+              </p>
+              <p>สถานะ: ${escapeHTML(row.status)}</p>
+            </div>
+          `).join("")
+          : `<p class="muted">ยังไม่มีข้อมูลใหม่ที่เลือก กรุณาติ๊กเลือกรายการจากตารางด้านบน</p>`
+      }
+
+      <div class="import-approval-actions">
+        <button
+          type="button"
+          class="btn btn-primary"
+          id="accImportNewApplyButton"
+          ${approvedNewItems.length === 0 ? "disabled" : ""}
+          onclick="accApplyApprovedNewExcelRows()"
+        >
+          เพิ่มข้อมูลใหม่ ${formatNumber(approvedNewItems.length)} รายการ
+        </button>
+        <p id="accImportNewSaveStatus" class="muted"></p>
+      </div>
+    </div>
+
+    <div class="import-plan">
+      <div class="import-plan-header">
+        <h3>Import Plan</h3>
+        <span class="muted">แผนการนำเข้าข้อมูล</span>
+      </div>
+
+      <div class="import-plan-grid">
+        ${importPlan.map(item => `
+          <div class="import-plan-card">
+            <span>${item.label}</span>
+            <strong>${formatNumber(item.count)}</strong>
+            <b>${item.action}</b>
+            <small>${item.detail}</small>
+          </div>
+        `).join("")}
+      </div>
+
+      <div class="import-plan-status">
+        <h4>รายละเอียดการเปลี่ยนแปลง</h4>
+        <p>
+          เปลี่ยนสถานะ:
+          <strong>${formatNumber(statusChangedCount)}</strong> รายการ
+        </p>
+        <p>
+          เปลี่ยนฟิลด์อื่น:
+          <strong>${formatNumber(otherChangedCount)}</strong> รายการ
+        </p>
+        <p class="muted">
+          รายการที่มีการเปลี่ยนทั้งสถานะและฟิลด์อื่น
+          อาจถูกนับอยู่ในทั้งสองประเภท
+        </p>
+      </div>
+
+      <div class="import-plan-warning">
+        <strong>ยังไม่เริ่มนำเข้าข้อมูล</strong>
+        <p>
+          แผนนี้เป็นการประเมินจากไฟล์ Excel เทียบกับ Supabase เท่านั้น
+          ยังไม่มีการ INSERT, UPDATE หรือ DELETE ข้อมูล
+        </p>
+      </div>
+    </div>
+
+    <p class="import-readonly-note">
+      ผลลัพธ์นี้เป็นการตรวจสอบแบบ Read Only
+      ยังไม่มีการเปลี่ยนแปลงข้อมูลใน Supabase
+    </p>
+
+  `;
+}
+
+
 function renderModule(page) {
   if (page === "dashboard") {
     renderDashboard();
@@ -1332,6 +2426,11 @@ function renderModule(page) {
   if (page === "tasks") {
     renderTasksPage();
     return;
+  }
+
+  if (page === "import") {
+  renderExcelImportPage();
+  return;
   }
 
   const [title, desc, icon] = pageMeta[page];
@@ -1620,52 +2719,75 @@ function renderTaskTable() {
 async function updateTaskStatus(taskId, newStatus, selectElement) {
   if (!TASK_STATUSES.includes(newStatus)) return;
 
-  const previousStatus = tasks.find(t =>
+  const task = tasks.find(t =>
     String(t.task_id) === String(taskId)
-  )?.status;
+  );
+
+  if (!task) {
+    showToast("ไม่พบข้อมูลงาน");
+    return;
+  }
+
+  const previousStatus = task.status;
+
+  if (previousStatus === newStatus) return;
+
+  const changedBy = currentUser?.id || null;
 
   selectElement.disabled = true;
 
-  try {
-    const { error } = await sbClient
-      .from("work_tasks")
-      .update({ status: newStatus })
-      .eq("task_id", taskId);
+  // Step 1: UPDATE work_tasks
+  const { error: updateError } = await sbClient
+    .from("work_tasks")
+    .update({ status: newStatus })
+    .eq("task_id", taskId);
 
-    if (error) throw error;
+  if (updateError) {
+    console.error("Update task error:", updateError);
+    showToast("บันทึกไม่สำเร็จ: " + updateError.message);
 
-    const task = tasks.find(t =>
-      String(t.task_id) === String(taskId)
-    );
-
-    if (task) {
-      task.status = newStatus;
-    }
-
-    showToast("บันทึกสถานะงานเรียบร้อย");
-
-    if (currentPage === "tasks") {
-      renderTaskTable();
-    }
-
-    if (currentPage === "dashboard") {
-      renderDashboardData();
-    }
-
-    if (currentPage === "pending") {
-      renderPendingTasks();
-    }
-
-  } catch (err) {
-    console.error("Update task error:", err);
-
-    showToast("บันทึกไม่สำเร็จ: " + err.message);
-
+    selectElement.value = previousStatus;
     selectElement.disabled = false;
+    return;
+  }
 
-    if (previousStatus) {
-      selectElement.value = previousStatus;
-    }
+  // UPDATE สำเร็จแล้ว จึงปรับข้อมูลในแอป
+  task.status = newStatus;
+
+  // Step 2: INSERT task_history
+  const { error: historyError } = await sbClient
+    .from("task_history")
+    .insert([{
+      task_id: taskId,
+      old_status: previousStatus,
+      new_status: newStatus,
+      changed_by: changedBy,
+      change_note: null
+    }]);
+
+  if (historyError) {
+    console.error("History insert error:", historyError);
+    showToast(
+      "เปลี่ยนสถานะสำเร็จ แต่บันทึกประวัติไม่สำเร็จ: " +
+      historyError.message
+    );
+  } else {
+    showToast("บันทึกสถานะงานและประวัติเรียบร้อย");
+  }
+   
+  selectElement.disabled = false;
+
+  // Step 3: Re-render หน้าที่เกี่ยวข้อง
+  if (currentPage === "tasks") {
+    renderTaskTable();
+  }
+
+  if (currentPage === "dashboard") {
+    renderDashboardData();
+  }
+
+  if (currentPage === "pending") {
+    renderPendingTasks();
   }
 }
 
@@ -1812,7 +2934,9 @@ async function startApplication() {
 
     await Promise.all([
       loadCompanies(),
-      loadTasks()
+      loadTasks(),
+      loadTaskTypes(),
+      loadTaskStatuses()
     ]);
 
     updateNavigationCounts();
@@ -1880,3 +3004,182 @@ async function startApplication() {
     await startApplication();
   }
 })();
+
+async function accApplyApprovedExcelChanges() {
+  const button = document.getElementById("accImportApplyButton");
+  const statusBox = document.getElementById("accImportSaveStatus");
+
+  if (!accImportPreviewResult || !button || !statusBox) return;
+
+  const approvedItems = accImportPreviewResult.groups.changed.filter(row =>
+    accImportApprovedRows.has(Number(row.excel_row))
+  );
+
+  if (!approvedItems.length) {
+    statusBox.textContent = "กรุณาเลือกรายการที่ต้องการอนุมัติก่อน";
+    return;
+  }
+
+  const confirmed = window.confirm(
+    `ยืนยันการอัปเดตข้อมูล ${approvedItems.length} รายการลง Supabase หรือไม่?\n\n` +
+    "ระบบจะเปลี่ยนเฉพาะรายการที่เลือก และบันทึกประวัติเมื่อมีการเปลี่ยนสถานะ\n\n" +
+    "การบันทึกสำเร็จแล้วจะไม่สามารถย้อนกลับด้วยปุ่มยกเลิกได้"
+  );
+
+  if (!confirmed) return;
+
+  button.disabled = true;
+  statusBox.textContent = "กำลังตรวจสอบและบันทึกข้อมูล...";
+
+  try {
+    const { data: sessionData, error: sessionError } =
+      await sbClient.auth.getSession();
+
+    if (sessionError) throw sessionError;
+
+    if (!sessionData?.session) {
+      throw new Error("เซสชันหมดอายุ กรุณาเข้าสู่ระบบใหม่");
+    }
+
+    const payload = approvedItems.map(row => ({
+      task_id: row.task_id,
+      old_values: row.old_values,
+      new_values: row.new_values
+    }));
+
+    const { data, error } = await sbClient.rpc(
+      "acc_apply_excel_changes",
+      { p_items: payload }
+    );
+
+    if (error) throw error;
+
+    if (!data || data.success !== true) {
+      throw new Error("Supabase ไม่ได้ยืนยันผลการบันทึก");
+    }
+
+    // ล้างรายการที่เลือกหลังบันทึกสำเร็จ
+    approvedItems.forEach(row => {
+      accImportApprovedRows.delete(Number(row.excel_row));
+    });
+
+    statusBox.textContent =
+      `บันทึกสำเร็จ ${formatNumber(data.updated_count)} รายการ` +
+      ` | เพิ่มประวัติสถานะ ${formatNumber(data.history_count)} รายการ` +
+      " | กรุณาเลือกไฟล์ Excel ใหม่เพื่อตรวจสอบข้อมูลล่าสุด";
+
+    accRenderExcelPreviewResult();
+
+    const updatedStatusBox =
+      document.getElementById("accImportSaveStatus");
+
+    if (updatedStatusBox) {
+      updatedStatusBox.textContent =
+        `บันทึกสำเร็จ ${formatNumber(data.updated_count)} รายการ` +
+        ` | เพิ่มประวัติสถานะ ${formatNumber(data.history_count)} รายการ` +
+        " | กรุณาเลือกไฟล์ Excel ใหม่เพื่อตรวจสอบข้อมูลล่าสุด";
+    }
+
+  } catch (error) {
+    console.error("ACC Excel Import Error:", error);
+
+    statusBox.textContent =
+      "บันทึกไม่สำเร็จ: " + (error.message || "เกิดข้อผิดพลาด");
+
+  } finally {
+    button.disabled = false;
+  }
+}
+
+
+async function accApplyApprovedNewExcelRows() {
+  const button = document.getElementById("accImportNewApplyButton");
+  const statusBox = document.getElementById("accImportNewSaveStatus");
+
+  if (!accImportPreviewResult || !button || !statusBox) return;
+
+  const approvedNewItems = accImportPreviewResult.groups.new.filter(row =>
+    accImportNewApprovedRows.has(Number(row.excel_row))
+  );
+
+  if (!approvedNewItems.length) {
+    statusBox.textContent = "กรุณาเลือกข้อมูลใหม่ที่ต้องการเพิ่มก่อน";
+    return;
+  }
+
+  const confirmed = window.confirm(
+    `ยืนยันการเพิ่มข้อมูลใหม่ ${approvedNewItems.length} รายการลง Supabase หรือไม่?\n\n` +
+    "ระบบจะเพิ่มเฉพาะรายการใหม่ และไม่เขียนทับข้อมูลเดิม"
+  );
+
+  if (!confirmed) return;
+
+  button.disabled = true;
+  statusBox.textContent = "กำลังตรวจสอบและเพิ่มข้อมูลใหม่...";
+
+  try {
+    const { data: sessionData, error: sessionError } =
+      await sbClient.auth.getSession();
+
+    if (sessionError) throw sessionError;
+
+    if (!sessionData?.session) {
+      throw new Error("เซสชันหมดอายุ กรุณาเข้าสู่ระบบใหม่");
+    }
+
+    const payload = approvedNewItems.map(row => ({
+      buddhist_year: row.buddhist_year,
+      month: row.month,
+      company_id: row.company_id,
+      company_code: row.company_code,
+      company_name: row.company_name,
+      task_type: row.task_type,
+      status: row.status,
+      source_updated_at: row.source_updated_at || null,
+      note: row.note || null,
+      source_file: accImportPreviewResult.fileName,
+      source_sheet: "รายการงาน",
+      source_row: Number(row.excel_row)
+    }));
+
+    const { data, error } = await sbClient.rpc(
+      "acc_insert_excel_new",
+      { p_items: payload }
+    );
+
+    if (error) throw error;
+
+    if (!data || data.success !== true) {
+      throw new Error("Supabase ไม่ได้ยืนยันผลการเพิ่มข้อมูล");
+    }
+
+    approvedNewItems.forEach(row => {
+      accImportNewApprovedRows.delete(Number(row.excel_row));
+    });
+
+    const successMessage =
+      `เพิ่มข้อมูลสำเร็จ ${formatNumber(data.inserted_count)} รายการ` +
+      " | กรุณาเลือกไฟล์ Excel ใหม่เพื่อตรวจสอบข้อมูลล่าสุด";
+
+    accRenderExcelPreviewResult();
+
+    const updatedStatusBox =
+      document.getElementById("accImportNewSaveStatus");
+
+    if (updatedStatusBox) {
+      updatedStatusBox.textContent = successMessage;
+    }
+
+  } catch (error) {
+    console.error("ACC Excel New Import Error:", error);
+
+    statusBox.textContent =
+      "เพิ่มข้อมูลไม่สำเร็จ: " + (error.message || "เกิดข้อผิดพลาด");
+
+  } finally {
+    const currentButton =
+      document.getElementById("accImportNewApplyButton");
+
+    if (currentButton) currentButton.disabled = false;
+  }
+}
