@@ -1172,3 +1172,160 @@
   align-items: center;
   text-align: center;
 }
+
+/* =====================================
+   MOBILE OVERSCROLL CONTROL
+===================================== */
+
+html {
+  overscroll-behavior-y: none;
+}
+
+body {
+  overscroll-behavior-y: none;
+}
+
+.app-shell {
+  overscroll-behavior-y: none;
+}
+
+/* Keep normal scrolling inside the page */
+.page-content {
+  overscroll-behavior-y: contain;
+}
+
+/* TODAY BUTTON - BLACK & GOLD */
+
+.date-chip {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+
+  min-height: 36px;
+  padding: 8px 15px;
+
+  background: linear-gradient(145deg, #302b20, #24231f);
+  border: 1px solid rgba(198, 164, 91, 0.55);
+  border-radius: 9px;
+
+  color: #e2c987;
+  font-size: 11px;
+  font-weight: 600;
+
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+  transition: all 0.2s ease;
+}
+
+.date-chip:hover {
+  background: linear-gradient(145deg, #423823, #30291e);
+  border-color: #d6b96f;
+  color: #f5dfaa;
+  box-shadow: 0 0 12px rgba(198, 164, 91, 0.15);
+}
+
+.date-chip:active {
+  transform: scale(0.96);
+}
+
+.date-chip span {
+  color: inherit;
+}
+
+
+/* =========================================
+   ACC TRACKER — EXPANDED TASK ROWS
+========================================= */
+
+.task-group-items .task-row {
+  display: grid;
+  grid-template-columns: 34px minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 12px;
+  padding: 13px 8px;
+  border-bottom: 1px solid rgba(255,255,255,0.06);
+}
+
+.task-group-items .task-row:last-child {
+  border-bottom: none;
+}
+
+.task-group-items .task-symbol {
+  width: 32px;
+  height: 32px;
+  border-radius: 9px;
+}
+
+.task-group-items .task-info {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+
+.task-group-items .task-info strong {
+  font-size: 12px;
+  font-weight: 600;
+  color: #eeeae0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.task-group-items .task-info .muted.small {
+  font-size: 10px;
+  color: #858d8e;
+}
+
+.task-group-items .task-meta {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  justify-content: center;
+  gap: 6px;
+  min-width: 105px;
+}
+
+.task-group-items .status-pill {
+  margin-left: 0;
+  font-size: 9px;
+  padding: 5px 9px;
+}
+
+.task-group-items .due-date {
+  font-size: 10px;
+  color: #a99b7e;
+  white-space: nowrap;
+}
+
+/* Mobile */
+@media (max-width: 480px) {
+  .task-group-items .task-row {
+    grid-template-columns: 30px minmax(0, 1fr) auto;
+    gap: 8px;
+    padding: 12px 3px;
+  }
+
+  .task-group-items .task-symbol {
+    width: 29px;
+    height: 29px;
+  }
+
+  .task-group-items .task-info strong {
+    font-size: 10px;
+  }
+
+  .task-group-items .task-meta {
+    min-width: 90px;
+    gap: 5px;
+  }
+
+  .task-group-items .status-pill {
+    font-size: 8px;
+    padding: 4px 7px;
+  }
+
+  .task-group-items .due-date {
+    font-size: 9px;
+  }
+}
